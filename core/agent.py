@@ -208,12 +208,16 @@ class Agent:
 
     def _spinner(self, stop: threading.Event):
         frames = "⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏"
-        i = 0
-        while not stop.wait(0.08):
-            sys.stdout.write("\r\033[2m" + frames[i % len(frames)] + " thinking…\033[0m")
+        body = " thinking…"
+        w = 1 + len(body)  # lebar tampilan (braille=1 kolom)
+        sys.stdout.write("\033[2m" + frames[0] + body + "\033[0m")
+        sys.stdout.flush()
+        i = 1
+        while not stop.wait(0.12):
+            sys.stdout.write("\b" * w + "\033[2m" + frames[i % len(frames)] + body + "\033[0m")
             sys.stdout.flush()
             i += 1
-        sys.stdout.write("\r\033[2K")
+        sys.stdout.write("\b" * w + " " * w + "\b" * w)
         sys.stdout.flush()
 
     def run(self, user_text: str, stream: bool = True) -> str:
@@ -239,6 +243,8 @@ class Agent:
         while self.max_steps <= 0 or step < self.max_steps:
             step += 1
             stop = threading.Event()
+            if stream and sys.stdout.isatty():
+                threading.Thread(target=self._spinner, args=(stop,), daemon=True).start()
             state = {"reason": False, "blue": False, "rbuf": "", "ron": False}
 
             def on_first():
