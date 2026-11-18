@@ -268,6 +268,19 @@ def main() -> int:
                 print(f"reasoning sekarang: {cfg.get('reasoning_effort') or 'default'}")
                 print("ubah: /reasoning default|low|medium|high")
             continue
+        if line == "/steps" or line.startswith("/steps "):
+            if " " in line:
+                try:
+                    v = max(1, min(40, int(line.split()[1])))
+                    agent.max_steps = v
+                    cfg["max_steps"] = v
+                    cfgmod.save(cfg)
+                    print(f"max_steps={v}")
+                except ValueError:
+                    print("format: /steps N (1-40)")
+            else:
+                print(f"max_steps={agent.max_steps}")
+            continue
         if line == "/session":
             print(f"id: {agent.session_id}")
             print(f"pesan: {len(agent.messages)}")

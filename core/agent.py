@@ -130,6 +130,7 @@ class Agent:
 
         self._compact()
         saved_mem = False
+        recent_calls: list[str] = []
         for step in range(self.max_steps):
             stop = threading.Event()
             if stream and sys.stdout.isatty():
@@ -196,16 +197,22 @@ class Agent:
                 except json.JSONDecodeError:
                     args = {}
 
-                if self.permission == "read-only" and (
-                        self.registry.tools.get(name) and self.registry.tools[name].danger):
-                    result = "DITOLAK: mode read-only"
-                elif self.registry.confirm_needed(name, args) and self.permission == "ask":
-                    ok = self.confirm(name, args)
-                    result = self.registry.call(name, args) if ok else "DITOLAK oleh pengguna"
+                sig = name + ":" + json.dumps(args, ensure_ascii=False, sort_keys=True)
+                recent_calls.append(sig)
+                if recent_calls.count(sig) >= 3:
+                    result = ("DITOLAK: panggilan tool yang sama sudah 3x. "
+                              "Jangan ulangi; gunakan hasil sebelumnya atau jawab.")
+                    print(f"  \033[33m⟡ {name} (loop terdeteksi, dilewati)\033[0m")
                 else:
-                    result = self.registry.call(name, args)
-
-                print(f"  \033[36m⟡ {name}\033[0m {json.dumps(args, ensure_ascii=False)[:160]}")
+                    if self.permission == "read-only" and (
+                            self.registry.tools.get(name) and self.registry.tools[name].danger):
+                        result = "DITOLAK: mode read-only"
+                    elif self.registry.confirm_needed(name, args) and self.permission == "ask":
+                        ok = self.confirm(name, args)
+                        result = self.registry.call(name, args) if ok else "DITOLAK oleh pengguna"
+                    else:
+                        result = self.registry.call(name, args)
+                    print(f"  \033[36m⟡ {name}\033[0m {json.dumps(args, ensure_ascii=False)[:160]}")
                 if name == "memory_save" and result.startswith("OK"):
                     saved_mem = True
                 self.messages.append({"role": "tool", "tool_call_id": call.get("id", ""),
@@ -213,4 +220,13 @@ class Agent:
                 self._record({"role": "tool", "name": name,
                               "tool_call_id": call.get("id", ""), "content": result})
 
-        return "[berhenti] batas langkah tercapai"
+        try:
+            r = self.llm.chat([self._system()] + self.messages[-30:] + [{
+                "role": "system",
+                "content": "Batas langkah tercapai. Jangan panggil tool lagi. "
+                           "Berikan ringkasan: apa yang sudah dikerjakan, apa yang "
+                           "terverifikasi, dan apa yang tersisa."}], None)
+            text = (r.get("content") or "").strip()
+        except Exception:
+            text = ""
+        return text or "[berhenti] batas langkah tercapai"

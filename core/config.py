@@ -14,7 +14,7 @@ DEFAULTS = {
     "model": "",
     "workspace": str(HOME / "perseus-workspace"),
     "permission": "ask",          # ask | auto | read-only
-    "max_steps": 8,
+    "max_steps": 12,
     "max_tokens": 4096,
     "timeout": 180,
     "allow_root": False,

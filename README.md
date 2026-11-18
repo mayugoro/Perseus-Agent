@@ -60,6 +60,7 @@ export PERSEUS_API_KEY='...'
 /model [id]                lihat provider + pilih model + reasoning
 /queue [tugas|run|rm N|clear]  antrean tugas
 /reasoning [level]         default|low|medium|high
+/steps [N]                 batas langkah tool (default 12)
 /sessions                  daftar sesi tersimpan
 /resume N                  lanjutkan sesi ke-N
 /session                   info sesi aktif
@@ -67,6 +68,11 @@ export PERSEUS_API_KEY='...'
 /agents [on|off|max N]     subagent paralel
 /exit
 ```
+
+Kalau muncul `[berhenti] batas langkah tercapai`, itu bukan ukuran sesi/JSONL —
+itu jumlah iterasi tool yang menyentuh `max_steps`. Naikkan dengan `/steps 20`
+(1–40) atau ubah `max_steps` di config. Panggilan tool identik 3x otomatis
+dilewati, dan saat batas tercapai Perseus diminta memberi ringkasan progres.
 
 `/model` tanpa argumen menampilkan provider, model aktif, dan daftar model dari
 endpoint `/v1/models`; pilih nomor atau ketik id sendiri. Setelah model dipilih,
