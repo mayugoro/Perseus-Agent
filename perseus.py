@@ -193,6 +193,7 @@ def show_history(msgs: list, limit: int = 6) -> None:
         else:
             print(f"\033[36m  perseus: {text}\033[0m")
     divider()
+    print()
 
 
 def run_show(agent: Agent, text: str) -> str:
@@ -349,6 +350,7 @@ def main() -> int:
 
     agent = Agent(cfg, confirm=make_confirm())
 
+    resumed = False
     if a.resume:
         sid = sess.resolve(a.resume)
         if not sid:
@@ -361,13 +363,15 @@ def main() -> int:
         print(f"resume sesi {sid} · {st['turns']} turn · {st['total']} pesan · "
               f"{sess.fmt_time(st['updated'])}")
         show_history(msgs)
+        resumed = True
 
     if a.prompt:
         run_show(agent, a.prompt)
         return 0
 
-    banner(cfg)
-    welcome()
+    if not resumed:
+        banner(cfg)
+        welcome()
     STATUS.update(agent=agent, cfg=cfg, start=time.time())
     _PT_ERROR = "bukan TTY" if not sys.stdin.isatty() else ""
     ps = build_prompt(status_line)
@@ -441,7 +445,10 @@ def main() -> int:
             continue
         if line == "/new":
             agent.reset()
-            print("(percakapan baru)")
+            agent.session_id = sess.new_session(cfg)
+            STATUS["start"] = time.time()
+            banner(cfg)
+            welcome()
             continue
         if line.startswith("/mode "):
             m = line.split(None, 1)[1].strip()
