@@ -174,6 +174,7 @@ boleh mendelegasikan lagi (anti-rekursif).
   - `android-apps`, `android-logs`, `android-files`, `android-build`, `termux-device`
   - `android-root`, `android-magisk`, `android-lsposed`, `android-frida`,
     `android-network`, `android-system`, `android-backup`, `termux-services`
+  - `android-dump`, `frida-variants`, `android-re-sdk`, `android-re-runtime`
 
 ## Keamanan
 
