@@ -126,7 +126,7 @@ perseus -resume 20261118-204418-715
 perseus -c <id> -p "lanjutkan tugas tadi"
 
 perseus sessions                   # daftar sesi dari shell
-perseus sessions <id|title>        # detail + 6 pesan terakhir
+perseus sessions <id|title>        # buka sesi (detail + 6 pesan terakhir)
 perseus resume <id|title>          # langsung lanjut sesi
 ```
 

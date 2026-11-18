@@ -297,28 +297,23 @@ def main() -> int:
         if q:
             sid = sess.resolve(q)
             if sid:
-                st = sess.stats(sid)
-                print(f"session : {st['id']}")
-                print(f"title   : {st['title'] or '-'}")
-                print(f"waktu   : {sess.fmt_time(st['created'])} → {sess.fmt_time(st['updated'])}")
-                print(f"isi     : {st['turns']} turn · {st['total']} pesan · model {st['model'] or '-'}")
-                print(f"resume  : perseus resume {st['id']}")
-                show_history(sess.load(sid))
+                a.resume = sid
             else:
                 rows = sess.search(q)
                 if not rows:
                     print("(tidak ada sesi yang cocok)")
                 for r in rows:
                     print(f"- {sess.fmt_time(r['updated'])} · {r['title'] or r['id']}\n  {r['snippet']}")
+                return 0
+        else:
+            rows = sess.list_sessions()
+            if not rows:
+                print("(belum ada sesi)")
+            for i, r in enumerate(rows, 1):
+                print(f"{i:>2}. {sess.fmt_time(r['updated'])} · {r['turns']} turn · "
+                      f"{r['total']} pesan · {r['title'] or '(tanpa judul)'} · {r['id']}")
+            print("\nBuka: perseus sessions <id|title> · Cari: perseus sessions <kata>")
             return 0
-        rows = sess.list_sessions()
-        if not rows:
-            print("(belum ada sesi)")
-        for i, r in enumerate(rows, 1):
-            print(f"{i:>2}. {sess.fmt_time(r['updated'])} · {r['turns']} turn · "
-                  f"{r['total']} pesan · {r['title'] or '(tanpa judul)'} · {r['id']}")
-        print("\nLihat: perseus sessions <id|title> · Lanjut: perseus resume <id|title>")
-        return 0
 
     if a.command == "resume":
         a.resume = " ".join(a.rest).strip() or None
