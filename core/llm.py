@@ -39,6 +39,12 @@ class LLM:
                 return json.loads(resp.read())
         except urllib.error.HTTPError as e:
             body = e.read()[:800].decode("utf-8", "replace")
+            if self.reasoning_effort and e.code == 400:
+                saved, self.reasoning_effort = self.reasoning_effort, ""
+                try:
+                    return self.chat(messages, tools)
+                finally:
+                    self.reasoning_effort = saved
             raise LLMError(f"HTTP {e.code}: {body}") from None
         except Exception as e:
             raise LLMError(f"request gagal: {e}") from None
@@ -132,7 +138,14 @@ class LLM:
                         if fn.get("arguments"):
                             slot["function"]["arguments"] += fn["arguments"]
         except urllib.error.HTTPError as e:
-            raise LLMError(f"HTTP {e.code}: {e.read()[:800].decode('utf-8','replace')}") from None
+            body = e.read()[:800].decode("utf-8", "replace")
+            if self.reasoning_effort and e.code == 400:
+                saved, self.reasoning_effort = self.reasoning_effort, ""
+                try:
+                    return self.stream_chat(messages, tools, on_text, on_reasoning, on_first)
+                finally:
+                    self.reasoning_effort = saved
+            raise LLMError(f"HTTP {e.code}: {body}") from None
         except Exception as e:
             raise LLMError(f"stream gagal: {e}") from None
         msg = {"role": "assistant", "content": "".join(content)}

@@ -60,7 +60,7 @@ export PERSEUS_API_KEY='...'
 /model [id]                lihat provider + pilih model + reasoning
 /queue [tugas|run|rm N|clear]  antrean tugas
 /reasoning [level]         default|low|medium|high
-/steps [N]                 batas langkah tool (default 12)
+/steps [N]                 batas langkah tool (0/default = unlimited)
 /sessions                  daftar sesi tersimpan
 /resume N                  lanjutkan sesi ke-N
 /session                   info sesi aktif
@@ -69,10 +69,10 @@ export PERSEUS_API_KEY='...'
 /exit
 ```
 
-Kalau muncul `[berhenti] batas langkah tercapai`, itu bukan ukuran sesi/JSONL —
-itu jumlah iterasi tool yang menyentuh `max_steps`. Naikkan dengan `/steps 20`
-(1–40) atau ubah `max_steps` di config. Panggilan tool identik 3x otomatis
-dilewati, dan saat batas tercapai Perseus diminta memberi ringkasan progres.
+`max_steps` default **0 = unlimited** (seperti agent utama Hermes). Loop tetap
+aman karena panggilan tool identik 3x otomatis dilewati. Set batas manual dengan
+`/steps 40` (0–500). Kalau batas tercapai, Perseus diminta memberi ringkasan
+progres, bukan berhenti dengan pesan kosong.
 
 `/model` tanpa argumen menampilkan provider, model aktif, dan daftar model dari
 endpoint `/v1/models`; pilih nomor atau ketik id sendiri. Setelah model dipilih,

@@ -22,7 +22,9 @@ Aturan:
 - Sebelum mengubah/menghapus file atau menginstall/menghapus app, jelaskan singkat lalu panggil tool.
 - Path file dibatasi ke workspace: {workspace}
 - Mode izin: {permission}
-- Sebelum menjawab: tentukan tujuan, batasan, dan langkah yang perlu; baru jawab/bertindak.
+- Berpikir mendalam sebelum menjawab: tentukan tujuan, batasan, dan langkah;
+  pertimbangkan beberapa pendekatan, pilih yang paling kokoh, lalu verifikasi hasil
+  sebelum menyimpulkan. Jangan berhenti di jawaban pertama yang terlihat benar.
 - Gaya: langsung ke inti, tanpa basa-basi. Selesai = laporan singkat: apa yang
   berubah, apa yang terverifikasi, apa yang tersisa.
 - Jika tool gagal, laporkan error aslinya dan langkah berikutnya.
@@ -131,7 +133,9 @@ class Agent:
         self._compact()
         saved_mem = False
         recent_calls: list[str] = []
-        for step in range(self.max_steps):
+        step = 0
+        while self.max_steps <= 0 or step < self.max_steps:
+            step += 1
             stop = threading.Event()
             if stream and sys.stdout.isatty():
                 threading.Thread(target=self._spinner, args=(stop,), daemon=True).start()

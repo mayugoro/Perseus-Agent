@@ -87,6 +87,10 @@ def wizard(cfg: dict) -> dict:
         if model:
             cfg["model"] = model
 
+    r = input(f"Reasoning [default/low/medium/high, sekarang {cfg.get('reasoning_effort') or 'default'}]: ").strip().lower()
+    if r in ("default", "low", "medium", "high"):
+        cfg["reasoning_effort"] = "" if r == "default" else r
+
     mode = input(f"Mode izin [ask/auto/read-only, sekarang {cfg.get('permission','ask')}]: ").strip()
     if mode in ("ask", "auto", "read-only"):
         cfg["permission"] = mode
@@ -271,15 +275,15 @@ def main() -> int:
         if line == "/steps" or line.startswith("/steps "):
             if " " in line:
                 try:
-                    v = max(1, min(40, int(line.split()[1])))
+                    v = max(0, min(500, int(line.split()[1])))
                     agent.max_steps = v
                     cfg["max_steps"] = v
                     cfgmod.save(cfg)
-                    print(f"max_steps={v}")
+                    print(f"max_steps={'unlimited' if v == 0 else v}")
                 except ValueError:
                     print("format: /steps N (1-40)")
             else:
-                print(f"max_steps={agent.max_steps}")
+                print(f"max_steps={'unlimited' if agent.max_steps <= 0 else agent.max_steps}")
             continue
         if line == "/session":
             print(f"id: {agent.session_id}")
