@@ -3,6 +3,8 @@
 AI agent ringan untuk **Termux (Android)**. Semua reasoning lewat provider API
 (OpenAI-compatible) — tidak ada model lokal, GGUF, ONNX, atau inferensi CPU.
 
+Dibuat oleh **Mayugoro** (github.com/mayugoro).
+
 Repo ini **kosong secara konfigurasi**: base URL, model, dan API key diisi sendiri
 saat setup pertama. Tidak ada provider yang di-hardcode.
 
