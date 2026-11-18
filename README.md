@@ -18,7 +18,8 @@ cd Perseus-Agent
 `install.sh` akan:
 
 1. memasang `python` dan `git`
-2. menjalankan wizard: **Base URL**, **Model**, **API key**, mode izin
+2. menjalankan wizard: **Base URL** + **API key**; model diambil otomatis dari
+   `{base_url}/models` lalu dipilih dari daftar
 3. membuat launcher `perseus` di `$PREFIX/bin`
 
 Setelah itu:

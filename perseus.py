@@ -13,6 +13,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from core import config as cfgmod
 from core import queue as qmod
 from core.agent import Agent
+from core.llm import LLM
 
 C = {"b": "\033[1m", "c": "\033[36m", "y": "\033[33m", "r": "\033[31m", "0": "\033[0m"}
 
@@ -44,23 +45,45 @@ def show_tools(agent: Agent) -> None:
 
 
 def wizard(cfg: dict) -> dict:
-    print(f"{C['b']}Perseus setup{C['0']} — isi provider sendiri (tidak ada default).\n")
+    print(f"{C['b']}Perseus setup{C['0']} — Base URL + API key, model diambil otomatis.\n")
     base = input(f"Base URL  [{cfg.get('base_url') or 'https://…/v1'}]: ").strip()
     if base:
         cfg["base_url"] = base.rstrip("/")
-    model = input(f"Model     [{cfg.get('model') or 'nama-model'}]: ").strip()
-    if model:
-        cfg["model"] = model
+
     print("API key disimpan lokal di ~/.perseus/config.json (0600).")
     print("Kosongkan kalau mau pakai env PERSEUS_API_KEY.")
     key = getpass.getpass("API key   : ").strip()
     if key:
         cfg["api_key"] = key
+
+    models = []
+    if cfg.get("base_url"):
+        try:
+            models = LLM(cfg["base_url"], cfgmod.api_key(cfg), "").list_models()
+        except Exception as e:
+            print(f"(gagal ambil daftar model: {e})")
+
+    if models:
+        for i, mid in enumerate(models[:40], 1):
+            mark = " *" if mid == cfg.get("model") else "  "
+            print(f"{mark}{i}. {mid}")
+        if len(models) > 40:
+            print(f"   … {len(models)-40} model lain")
+        choice = input("Pilih nomor model [Enter=pertahankan]: ").strip()
+        if choice.isdigit() and 1 <= int(choice) <= len(models):
+            cfg["model"] = models[int(choice) - 1]
+        elif choice and not choice.startswith("/"):
+            cfg["model"] = choice
+    else:
+        model = input(f"Model     [{cfg.get('model') or 'nama-model'}]: ").strip()
+        if model:
+            cfg["model"] = model
+
     mode = input(f"Mode izin [ask/auto/read-only, sekarang {cfg.get('permission','ask')}]: ").strip()
     if mode in ("ask", "auto", "read-only"):
         cfg["permission"] = mode
     cfgmod.save(cfg)
-    print(f"\nTersimpan. Model={cfg['model']} · mode={cfg['permission']}\n")
+    print(f"\nTersimpan. Model={cfg.get('model')} · mode={cfg.get('permission')}\n")
     return cfg
 
 
@@ -109,7 +132,8 @@ def main() -> int:
         return 0
 
     if a.init:
-        cfg = wizard(cfg)
+        wizard(cfg)
+        return 0
     elif not ready(cfg) and not a.prompt and not a.show_config:
         print("Provider belum diset. Jalankan setup dulu.\n")
         cfg = wizard(cfg)
