@@ -39,6 +39,13 @@ def banner(cfg: dict) -> None:
           f"{C['y']}/exit{C['0']} keluar\n")
 
 
+def run_show(agent: Agent, text: str) -> str:
+    out = agent.run(text)
+    if not agent.last_streamed:
+        print(out)
+    return out
+
+
 def show_tools(agent: Agent) -> None:
     for t in agent.registry.tools.values():
         flag = "!" if t.danger else " "
@@ -168,7 +175,7 @@ def main() -> int:
               f"{sess.fmt_time(st['updated'])}")
 
     if a.prompt:
-        print(agent.run(a.prompt))
+        run_show(agent, a.prompt)
         return 0
 
     banner(cfg)
@@ -360,8 +367,7 @@ def main() -> int:
                     for i, q in enumerate(qs, 1):
                         print(f"\n{C['c']}[queue {i}/{len(qs)}]{C['0']} {q['text']}")
                         try:
-                            out = agent.run(q["text"])
-                            print(out)
+                            run_show(agent, q["text"])
                         except KeyboardInterrupt:
                             print("(dibatalkan, sisa antrean disimpan)")
                             break
@@ -381,7 +387,7 @@ def main() -> int:
                 print(f"ditambahkan ke antrean (#{n})")
             continue
         try:
-            print(agent.run(line))
+            run_show(agent, line)
         except KeyboardInterrupt:
             print("\n(dibatalkan)")
     return 0

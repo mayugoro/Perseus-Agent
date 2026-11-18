@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 import json
+import sys
+import threading
 import time
 from pathlib import Path
 
@@ -48,6 +50,7 @@ class Agent:
         self.messages: list[dict] = []
         self.log = log
         self.session_id = None
+        self.last_streamed = False
         if log:
             self.session_id = session.new_session(cfg)
 
@@ -109,29 +112,78 @@ class Agent:
     def reset(self) -> None:
         self.messages = []
 
-    def run(self, user_text: str, on_token=None) -> str:
+    def _spinner(self, stop: threading.Event):
+        frames = "⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏"
+        i = 0
+        while not stop.wait(0.08):
+            sys.stdout.write("\r\033[2m" + frames[i % len(frames)] + " thinking…\033[0m")
+            sys.stdout.flush()
+            i += 1
+        sys.stdout.write("\r\033[2K")
+        sys.stdout.flush()
+
+    def run(self, user_text: str, stream: bool = True) -> str:
         self.messages.append({"role": "user", "content": user_text})
         self._record({"role": "user", "content": user_text})
         tools = self.registry.schema()
+        self.last_streamed = False
 
         self._compact()
         saved_mem = False
         for step in range(self.max_steps):
-            try:
-                msg = self.llm.chat([self._system()] + self.messages[-40:], tools)
-            except LLMError as e:
-                return f"[provider error] {e}"
+            stop = threading.Event()
+            if stream and sys.stdout.isatty():
+                threading.Thread(target=self._spinner, args=(stop,), daemon=True).start()
+            state = {"reason": False}
 
-            rc = msg.get("reasoning_content") or msg.get("reasoning")
-            if rc and self.show_reasoning:
-                print(f"\033[2m[think] {str(rc)[:600]}\033[0m")
+            def on_first():
+                stop.set()
+
+            def on_reason(chunk: str):
+                if not self.show_reasoning:
+                    return
+                if not state["reason"]:
+                    sys.stdout.write("\033[2m[think] ")
+                    state["reason"] = True
+                sys.stdout.write(chunk)
+                sys.stdout.flush()
+
+            def on_text(chunk: str):
+                if state["reason"]:
+                    sys.stdout.write("\033[0m\n")
+                    state["reason"] = False
+                self.last_streamed = True
+                sys.stdout.write(chunk)
+                sys.stdout.flush()
+
+            try:
+                if stream:
+                    msg = self.llm.stream_chat([self._system()] + self.messages[-40:], tools,
+                                               on_text=on_text, on_reasoning=on_reason,
+                                               on_first=on_first)
+                else:
+                    msg = self.llm.chat([self._system()] + self.messages[-40:], tools)
+            except LLMError as e:
+                stop.set()
+                return f"[provider error] {e}"
+            finally:
+                stop.set()
+                time.sleep(0.02)
+                if state["reason"]:
+                    sys.stdout.write("\033[0m\n")
+                    state["reason"] = False
+
             content = msg.get("content") or ""
             calls = msg.get("tool_calls") or []
             self.messages.append(msg)
             self._record(msg)
 
+            if calls and self.last_streamed:
+                print()
             if not calls:
                 out = content.strip() or "(kosong)"
+                if self.last_streamed:
+                    print()
                 if not saved_mem:
                     self._learn(user_text, out)
                 return out

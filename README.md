@@ -103,8 +103,10 @@ pertama kali DB dibuka, lalu tidak ditulis lagi.
 
 ## Belajar & berpikir
 
-- Sebelum menjawab, Perseus menentukan tujuan/batasan/langkah dulu (dan menampilkan
-  `[think]` bila model mengirim `reasoning_content`; toggle `/think`).
+- Respons di-stream (SSE): teks muncul token demi token, tidak menunggu selesai.
+- Saat menunggu token pertama, muncul spinner `⠋ thinking…` (hanya di TTY).
+- Blok `[think]` ditampilkan abu-abu/dim saat model mengirim `reasoning_content`;
+  toggle `/think`.
 - `auto_learn` (default on): setelah jawaban selesai, satu panggilan ringan
   mengekstrak maksimal 2 fakta tahan lama → disimpan ke SQLite. Fakta ini
   diinjeksi ke system prompt sesi berikutnya. Matikan dengan `/learn`.
