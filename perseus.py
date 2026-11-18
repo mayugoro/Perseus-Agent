@@ -353,12 +353,20 @@ def wizard(cfg: dict) -> dict:
     except Exception:
         pass
 
-    r = input(f"Reasoning [default/low/medium/high, currently {cfg.get('reasoning_effort') or 'default'}]: ").strip().lower()
-    if r in ("default", "low", "medium", "high"):
-        cfg["reasoning_effort"] = "" if r == "default" else r
+    ropts = ["default", "low", "medium", "high"]
+    print("Reasoning: 1. default  2. low  3. medium  4. high")
+    r = input(f"Pick reasoning number [Enter={cfg.get('reasoning_effort') or 'default'}]: ").strip()
+    if r.isdigit() and 1 <= int(r) <= 4:
+        cfg["reasoning_effort"] = "" if r == "1" else ropts[int(r) - 1]
+    elif r.lower() in ropts:
+        cfg["reasoning_effort"] = "" if r.lower() == "default" else r.lower()
 
-    mode = input(f"Permission mode [ask/auto/read-only, currently {cfg.get('permission','ask')}]: ").strip()
-    if mode in ("ask", "auto", "read-only"):
+    mopts = ["ask", "auto", "read-only"]
+    print("Permission: 1. ask  2. auto  3. read-only")
+    mode = input(f"Pick permission number [Enter={cfg.get('permission','ask')}]: ").strip()
+    if mode.isdigit() and 1 <= int(mode) <= 3:
+        cfg["permission"] = mopts[int(mode) - 1]
+    elif mode in mopts:
         cfg["permission"] = mode
     cfgmod.save(cfg)
     print(f"\nSaved. Model={cfg.get('model')} · mode={cfg.get('permission')}\n")
@@ -609,13 +617,15 @@ def main() -> int:
             else:
                 m = line.split(None, 1)[1].strip()
             if line == "/model" and m:
-                r = input("Reasoning [default/low/medium/high] (Enter=keep): ").strip().lower()
-                if r in ("default", "low", "medium", "high"):
-                    v = "" if r == "default" else r
+                ropts = ["default", "low", "medium", "high"]
+                print("Reasoning: 1. default  2. low  3. medium  4. high")
+                r = input("Pick reasoning number [Enter=keep]: ").strip()
+                if r.isdigit() and 1 <= int(r) <= 4:
+                    v = "" if r == "1" else ropts[int(r) - 1]
                     agent.llm.reasoning_effort = v
                     cfg["reasoning_effort"] = v
                     cfgmod.save(cfg)
-                    print(f"reasoning={r}")
+                    print(f"reasoning={ropts[int(r)-1]}")
             agent.llm.model = m
             cfg["model"] = m
             try:
