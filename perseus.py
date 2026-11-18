@@ -110,7 +110,7 @@ def banner(cfg: dict) -> None:
         lt = " " + LOGO_ART[i]
         rt = "• " + right[i] if i < len(right) else ""
         rt = _clip(rt, right_w)
-        print("\033[36m" + lt.ljust(left_w) + "\033[0m" + rt)
+        print("\033[36m" + lt.ljust(left_w) + rt + "\033[0m")
     model = str(cfg.get("model", "-")).split("/")[-1]
     mode = cfg.get("permission", "ask")
     if cfg.get("yolo"):
