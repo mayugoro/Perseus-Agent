@@ -41,6 +41,29 @@ class LLM:
         except Exception as e:
             raise LLMError(f"request gagal: {e}") from None
 
+    def list_models(self) -> list[str]:
+        req = urllib.request.Request(
+            self.base_url + "/models",
+            headers={
+                "Authorization": "Bearer " + self.api_key,
+                "Accept": "application/json",
+                "User-Agent": "Perseus/0.1 (Termux)",
+            },
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=60) as resp:
+                data = json.loads(resp.read())
+        except urllib.error.HTTPError as e:
+            raise LLMError(f"HTTP {e.code}: {e.read()[:300].decode('utf-8', 'replace')}") from None
+        except Exception as e:
+            raise LLMError(f"request gagal: {e}") from None
+        out = []
+        for m in data.get("data", []) if isinstance(data, dict) else []:
+            mid = m.get("id") if isinstance(m, dict) else None
+            if mid:
+                out.append(mid)
+        return out
+
     def chat(self, messages: list, tools: list | None = None) -> dict:
         body = {
             "model": self.model,

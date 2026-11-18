@@ -110,7 +110,7 @@ def main() -> int:
 
     if a.init:
         cfg = wizard(cfg)
-    elif not ready(cfg) and not a.prompt:
+    elif not ready(cfg) and not a.prompt and not a.show_config:
         print("Provider belum diset. Jalankan setup dulu.\n")
         cfg = wizard(cfg)
 
@@ -146,7 +146,7 @@ def main() -> int:
             break
         if line == "/help":
             print("/tools  daftar tool\n/new    reset percakapan\n/mode ask|auto|read-only"
-                  "\n/model <id>\n/queue [tugas|run|rm N|clear]  antrean tugas\n/agents [on|off|max N]  subagent paralel\n/exit   keluar")
+                  "\n/model [id]  ganti/daftar model\n/queue [tugas|run|rm N|clear]  antrean tugas\n/agents [on|off|max N]  subagent paralel\n/exit   keluar")
             continue
         if line == "/tools":
             show_tools(agent)
@@ -165,8 +165,31 @@ def main() -> int:
             else:
                 print("mode: ask | auto | read-only")
             continue
-        if line.startswith("/model "):
-            m = line.split(None, 1)[1].strip()
+        if line == "/model" or line.startswith("/model "):
+            print(f"provider : {cfg['base_url']}")
+            print(f"model    : {agent.llm.model}")
+            if line == "/model":
+                try:
+                    models = agent.llm.list_models()
+                except Exception as e:
+                    print(f"(gagal ambil daftar model: {e})")
+                    models = []
+                if models:
+                    for i, mid in enumerate(models[:40], 1):
+                        mark = " *" if mid == agent.llm.model else "  "
+                        print(f"{mark}{i}. {mid}")
+                    if len(models) > 40:
+                        print(f"   … {len(models)-40} model lain")
+                choice = input("Pilih nomor / ketik model id [Enter=batal]: ").strip()
+                if not choice or choice.startswith("/"):
+                    print("(batal)")
+                    continue
+                if choice.isdigit() and 1 <= int(choice) <= len(models):
+                    m = models[int(choice) - 1]
+                else:
+                    m = choice
+            else:
+                m = line.split(None, 1)[1].strip()
             agent.llm.model = m
             cfg["model"] = m
             cfgmod.save(cfg)

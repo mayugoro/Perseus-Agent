@@ -56,11 +56,14 @@ export PERSEUS_API_KEY='...'
 /tools                     daftar tool
 /new                       reset percakapan
 /mode ask|auto|read-only   mode izin
-/model <id>                ganti model
+/model [id]                lihat provider + pilih model
 /queue [tugas|run|rm N|clear]  antrean tugas
 /agents [on|off|max N]     subagent paralel
 /exit
 ```
+
+`/model` tanpa argumen menampilkan provider, model aktif, dan daftar model dari
+endpoint `/v1/models`; pilih nomor atau ketik id sendiri.
 
 `/queue <tugas>` menambah tugas, `/queue` melihat daftar, `/queue run`
 menjalankannya berurutan (sesi sama), `/queue rm N` dan `/queue clear` mengelola.
