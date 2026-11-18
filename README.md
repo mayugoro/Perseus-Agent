@@ -30,9 +30,16 @@ perseus
 ## Setup manual
 
 ```bash
-python3 perseus.py --init      # wizard provider
+python3 perseus.py --init      # wizard provider pertama kali
+python3 perseus.py model       # ubah provider / model / API key
 python3 perseus.py             # REPL
 python3 perseus.py -p "halo"   # satu perintah
+```
+
+Kalau sudah di-install, cukup:
+
+```bash
+perseus model
 ```
 
 Konfigurasi disimpan di `~/.perseus/config.json` (0600). API key boleh disimpan

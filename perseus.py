@@ -69,6 +69,8 @@ def main() -> int:
     ap.add_argument("--mode", choices=["ask", "auto", "read-only"])
     ap.add_argument("--model")
     ap.add_argument("--workspace")
+    ap.add_argument("command", nargs="?", choices=["model", "setup"],
+                    help="model = ubah provider/model/API key")
     ap.add_argument("--init", action="store_true", help="buat config default")
     ap.add_argument("--show-config", action="store_true")
     a = ap.parse_args()
@@ -81,6 +83,10 @@ def main() -> int:
     if a.workspace:
         cfg["workspace"] = str(Path(a.workspace).expanduser().resolve())
         Path(cfg["workspace"]).mkdir(parents=True, exist_ok=True)
+    if a.command in ("model", "setup"):
+        cfg = wizard(cfg)
+        return 0
+
     if a.init:
         cfg = wizard(cfg)
     elif not ready(cfg) and not a.prompt:
