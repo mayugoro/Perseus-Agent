@@ -32,6 +32,9 @@ SLASH = [
     ("/session", "info sesi aktif"), ("/exit", "keluar"),
 ]
 
+STATUS = {}
+
+
 LOGO_ART = [
     "    ╱╱",
     "   ╱ ╱",
@@ -106,6 +109,29 @@ def _skills_names(cfg: dict) -> str:
 def welcome() -> None:
     print("Welcome to Perseus! Type your message or /help for commands.")
     print("✦ Tip: /usage shows token usage, context, and session duration.\n")
+
+
+def est_tokens(agent: Agent) -> int:
+    chars = sum(len(str(m.get("content") or "")) for m in agent.messages)
+    return max(0, chars // 4)
+
+
+def status_line() -> str:
+    agent = STATUS.get("agent")
+    cfg = STATUS.get("cfg", {})
+    if not agent:
+        return ""
+    limit = int(cfg.get("context_length") or getattr(agent, "context_length", 128000) or 128000)
+    tok = est_tokens(agent)
+    pct = min(100, int(tok * 100 / max(1, limit)))
+    fill = min(10, pct // 10)
+    bar = "█" * fill + "░" * (10 - fill)
+    dur = int(time.time() - STATUS.get("start", time.time()))
+    model = str(agent.llm.model).split("/")[-1]
+    last = agent.last_elapsed
+    yolo = " · YOLO" if cfg.get("yolo") else ""
+    return (f" ☤ {model}{yolo} · ctx {pct}% [{bar}] {tok}/{limit//1000}k"
+            f" · {last:.0f}s · ⏲ {dur}s    / commands · @ files · ! shell")
 
 
 def cmd_usage(agent: Agent, cfg: dict) -> None:
