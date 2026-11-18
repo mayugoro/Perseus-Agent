@@ -134,7 +134,7 @@ def build_prompt(get_status=None):
         hist = Path.home() / ".perseus" / "history"
         hist.parent.mkdir(parents=True, exist_ok=True)
         from prompt_toolkit.formatted_text import ANSI
-        return PromptSession(ANSI("\033[36m❯\033[0m "), completer=SlashCompleter(),
+        return PromptSession(ANSI("\033[97m❯\033[0m "), completer=SlashCompleter(),
                              complete_while_typing=True,
                              bottom_toolbar=get_status,
                              history=FileHistory(str(hist)))
@@ -400,7 +400,7 @@ def main() -> int:
     _PT_ERROR = "bukan TTY" if not sys.stdin.isatty() else ""
     ps = build_prompt(status_line)
     if ps:
-        print(f"  completion: aktif — ketik / untuk daftar perintah\n")
+        pass
     else:
         err = globals().get("_PT_ERROR") or _PT_ERROR or "prompt_toolkit tidak tersedia"
         if setup_readline():
