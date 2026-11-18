@@ -1,21 +1,21 @@
-# Termux — kontrol perangkat
+# Termux — device control
 
-Gunakan saat user minta baterai, notifikasi, clipboard, lokasi, getar, atau TTS.
+Use for battery, notifications, clipboard, location, vibration, or TTS.
 
-## Perintah (butuh `pkg install termux-api` + app Termux:API)
-- Baterai: `termux-battery-status`
-- Notifikasi: `termux-notification --title "..." --content "..."`
+## Commands (need `pkg install termux-api` + the Termux:API app)
+- Battery: `termux-battery-status`
+- Notification: `termux-notification --title "..." --content "..."`
 - Clipboard: `termux-clipboard-get` / `termux-clipboard-set "..."`
-- Getar: `termux-vibrate -d 300`
-- Toast: `termux-toast "pesan"`
-- Lokasi: `termux-location -p network` (izin lokasi)
-- TTS: `termux-tts-speak "teks"`
+- Vibrate: `termux-vibrate -d 300`
+- Toast: `termux-toast "message"`
+- Location: `termux-location -p network` (location permission)
+- TTS: `termux-tts-speak "text"`
 - Wake lock: `termux-wake-lock` / `termux-wake-unlock`
-- Buka file/URL: `termux-open <path|url>`
+- Open file/URL: `termux-open <path|url>`
 
-## Aturan
-- Cek dulu `command -v termux-battery-status`; kalau tidak ada, sarankan
-  `pkg install termux-api` dan pasang app Termux:API.
-- Izin Android (lokasi, SMS, kontak) tidak bisa diberikan lewat shell; user harus
-  menyetujui di dialog.
-- Untuk tugas panjang, sarankan `termux-wake-lock` agar tidak dibunuh Doze.
+## Rules
+- Check `command -v termux-battery-status` first; if missing, suggest
+  `pkg install termux-api` and installing the Termux:API app.
+- Android permissions (location, SMS, contacts) can't be granted from shell; the
+  user must approve the dialog.
+- For long tasks, suggest `termux-wake-lock` to avoid Doze killing them.

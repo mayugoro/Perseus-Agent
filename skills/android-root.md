@@ -1,21 +1,21 @@
-# Android — dasar root & keamanan operasi
+# Android — root basics & safe operations
 
-Gunakan saat butuh akses root, cek Magisk, atau operasi sistem.
+Use when root access, Magisk checks, or system operations are needed.
 
-## Cek status
-- `su -c id` → harus `uid=0`.
+## Status
+- `su -c id` → must be `uid=0`.
 - `magisk -V`, `magisk --sqlite "select * from settings"` (denylist_enforce).
 - `getprop ro.build.version.release`, `getprop ro.product.model`.
 - `ls /data/adb` → magisk, modules, lspd.
 
-## Aturan wajib
-- Setiap perintah root eksplisit: `su -c "..."`; jangan berharap shell root bertahan.
-- Operasi destruktif (`rm -rf /data`, `dd of=/dev/block`, `pm clear`, format)
-  **wajib konfirmasi user** dan sebutkan risikonya.
-- Backup dulu file/partisi sebelum menimpa.
-- Jangan mengubah `/system` langsung; utamakan systemless (Magisk module).
+## Hard rules
+- Prefix every root command: `su -c "..."`; don't assume a persistent root shell.
+- Destructive ops (`rm -rf /data`, `dd of=/dev/block`, `pm clear`, format)
+  require user confirmation and stated risk.
+- Back up files/partitions before overwriting.
+- Don't touch `/system` directly; prefer systemless (Magisk module).
 
-## Diagnosa
-- `dmesg | tail`, `logcat -b all -d | tail`, `dumpsys` untuk status service.
-- `ps -A -o PID,NAME,ARGS | grep <nama>`.
-- `ss -ltnp` / `netstat -ltnp` untuk port.
+## Diagnosis
+- `dmesg | tail`, `logcat -b all -d | tail`, `dumpsys` for service state.
+- `ps -A -o PID,NAME,ARGS | grep <name>`.
+- `ss -ltnp` / `netstat -ltnp` for ports.

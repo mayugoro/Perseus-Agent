@@ -1,27 +1,26 @@
-# Frida — varian & gadget (hluda, Florida, Arida)
+# Frida — variants & gadget (hluda, Florida, Arida)
 
-Gunakan saat frida-server biasa terdeteksi anti-tamper.
+Use when plain frida-server is detected by anti-tamper.
 
-## Varian umum
-- **frida-server** resmi: paling mudah dideteksi (nama proses/port/maps).
-- **hluda-server**: frida-server yang di-rename (string/port diganti) untuk mengurangi
-  deteksi signature; perilaku API sama.
-- **Florida**: fork Frida dengan patch stealth (nama/port/paths), cocok untuk app
-  dengan deteksi frida dasar. Klien tetap frida-tools.
-- **Arida**: fork/rename lain; verifikasi dulu `--version` dan apakah protokol klien
-  cocok. Jangan asumsikan kompatibel.
-- **frida-gadget**: `libfrida-gadget.so` ditanam ke APK; load via `System.loadLibrary`
-  atau config `libfrida-gadget.config`. Tanpa proses frida-server.
+## Common variants
+- **frida-server** official: easiest to detect (process name/port/maps).
+- **hluda-server**: renamed frida-server (strings/port changed) to reduce signature
+  detection; API behavior is the same.
+- **Florida**: a Frida fork with stealth patches (name/port/paths), good for apps
+  with basic Frida detection. Clients remain frida-tools.
+- **Arida**: another fork/rename; verify `--version` and client-protocol
+  compatibility first — don't assume.
+- **frida-gadget**: `libfrida-gadget.so` embedded into the APK; loaded via
+  `System.loadLibrary` or `libfrida-gadget.config`. No frida-server process.
 
 ## Gadget (repack)
-1. Taruh `libfrida-gadget.so` di `lib/<abi>/`.
-2. Tambah `libfrida-gadget.config` (listen/interaction).
-3. Pastikan code memuat library (smali `System.loadLibrary("frida-gadget")` atau
-   `dlopen`), lalu repack + sign ulang.
+1. Put `libfrida-gadget.so` in `lib/<abi>/`.
+2. Add `libfrida-gadget.config` (listen/interaction).
+3. Make sure code loads it (`System.loadLibrary("frida-gadget")` or `dlopen`), repack + re-sign.
 4. Attach: `frida -U -n Gadget`.
 
-## Pitfall
-- Repack mengubah signature → integrity check bisa menolak.
-- Beberapa app memeriksa `maps` untuk `frida`/`gadget`; rename file tidak cukup.
-- Hentikan proses varian Frida setelah selesai; jangan biarkan aktif saat app produksi.
-- Frida 17 tanpa Java bridge: compile script dengan `frida-compile` bila perlu.
+## Pitfalls
+- Repacking changes the signature → integrity checks may reject.
+- Some apps scan `maps` for `frida`/`gadget`; renaming the file is not enough.
+- Stop Frida-variant processes when done; don't leave them on for production apps.
+- Frida 17 without Java bridge: compile with frida-compile when needed.

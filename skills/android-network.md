@@ -1,18 +1,18 @@
-# Android — jaringan & diagnostik
+# Android — network & diagnostics
 
-Gunakan saat cek koneksi, port, DNS, proxy, atau traffic.
+Use to check connectivity, ports, DNS, proxy, or traffic.
 
 ## Status
 - `ip addr`, `ip route`, `getprop | grep -i dns`.
-- `ss -ltnp` (root) untuk port listening + proses.
+- `ss -ltnp` (root) for listening ports + process.
 - `ping -c 3 8.8.8.8`, `curl -I https://...`.
 
-## Tangkap traffic (root)
-- `su -c "tcpdump -i any -w /sdcard/cap.pcap"` (butuh tcpdump).
-- Proxy lokal: `settings put global http_proxy 127.0.0.1:8080` (hapus dengan `:0`).
-- iptables redirect butuh root dan hati-hati; simpan aturan asli sebelum mengubah.
+## Traffic capture (root)
+- `su -c "tcpdump -i any -w /sdcard/cap.pcap"` (needs tcpdump).
+- Proxy: `settings put global http_proxy 127.0.0.1:8080` (clear with `:0`).
+- iptables redirect needs root and care; save original rules first.
 
-## Pitfall
-- Android 10+ membatasi akses `/proc/net`; gunakan `ss` dengan root.
-- VPN/proxy sistem bisa membuat tcpdump tidak melihat plaintext.
-- Jangan menyalakan proxy global tanpa memberi tahu user; bisa memutus koneksi app.
+## Pitfalls
+- Android 10+ restricts `/proc/net`; use `ss` as root.
+- A system VPN/proxy may stop tcpdump from seeing plaintext.
+- Don't enable a global proxy without telling the user; it can cut app connectivity.

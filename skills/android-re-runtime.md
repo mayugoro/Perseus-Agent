@@ -1,25 +1,25 @@
-# Android — instrumentasi runtime (hook & anti-detection)
+# Android — runtime instrumentation (hooks & anti-detection)
 
-Gunakan saat perlu membaca perilaku app saat berjalan.
+Use to read an app's runtime behavior.
 
-## Java hook
-- Enumerasi: `Java.enumerateLoadedClasses`, `Java.choose('cls', {onMatch})`.
+## Java hooks
+- Enumerate: `Java.enumerateLoadedClasses`, `Java.choose('cls', {onMatch})`.
 - Method: `C.method.overload('java.lang.String').implementation = function(s){...}`.
-- Constructor, field statis, dan `ClassLoader` (app vs boot) sering jadi sumber error.
+- Constructor, static fields, and `ClassLoader` (app vs boot) are common error sources.
 
-## Native hook
+## Native hooks
 - `Module.findExportByName(lib, sym)`, `Interceptor.attach`.
-- Untuk fungsi statis/stripped: cari via `Module.enumerateSymbols` atau offset dari
-  `readelf`/IDA; verifikasi base address di maps.
-- `dlopen`/`dlsym` hook untuk melihat library yang dimuat.
+- For static/stripped functions: `Module.enumerateSymbols` or offsets from
+  `readelf`/IDA; verify the base address in maps.
+- Hook `dlopen`/`dlsym` to see loaded libraries.
 
 ## Anti-detection
-- Root: cek `su` path, `Build.TAGS`, `ro.debuggable`, mounts; hook konsisten.
-- Frida: cek proses/port/maps; varian rename (hluda/Florida) membantu, bukan jaminan.
-- Debugger: `Debug.isDebuggerConnected`, `ptrace`; hook di Java dan native.
-- Integrity: signature/hash dex/so; jangan patch resource sembarangan.
+- Root: check `su` paths, `Build.TAGS`, `ro.debuggable`, mounts; hook consistently.
+- Frida: checks process/port/maps; renamed variants (hluda/Florida) help, not guarantee.
+- Debugger: `Debug.isDebuggerConnected`, `ptrace`; hook both Java and native.
+- Integrity: signature/dex/so hashes; don't patch resources randomly.
 
-## Pitfall
-- Hook native saat lib belum dimuat → tunggu `dlopen` atau `Java.perform` selesai.
-- Satu hook salah tipe argumen membuat app crash; mulai dari log saja.
-- Selalu log stack/errno; jangan menebak nilai balik.
+## Pitfalls
+- Hook after the lib is loaded; wait for `dlopen` or finish `Java.perform`.
+- One wrong argument type crashes the app; start with logging only.
+- Always log stack/errno; don't guess return values.

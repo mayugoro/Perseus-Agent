@@ -1,27 +1,27 @@
-# Reverse engineering SDK di APK
+# Reverse engineering an SDK inside an APK
 
-Gunakan saat perlu memahami cara SDK (payment, analytics, auth, QRIS) bekerja.
+Use to understand how an SDK (payment, analytics, auth, QRIS) works.
 
-## Langkah
-1. **Identifikasi SDK**: `jadx -d out app.apk`; cari package vendor di
-   `AndroidManifest`, `assets`, `lib/`, dan string (`strings classes*.dex`).
-2. **API surface**: grep host/endpoint (`https://`, `/v1/`, `Retrofit`, `OkHttp`),
-   nama class `*Client`, `*Service`, `*Api`.
-3. **Kontrak request**: cari DTO/`@SerializedName`, builder, interceptor header,
-   signature/HMAC/AES helper. Catat urutan: token → endpoint → body → header.
-4. **Native**: `readelf -d lib/*.so`, `strings` untuk endpoint/key; JNI method
-   (`Java_...`) menghubungkan Java ↔ C.
-5. **Verifikasi dinamis**: hook method kunci via Frida (bukan capture HAR), log
-   argumen/return; untuk SDK terproteksi, dump dex/native dulu.
+## Steps
+1. **Identify the SDK**: `jadx -d out app.apk`; look for vendor packages in
+   `AndroidManifest`, `assets`, `lib/`, and `strings classes*.dex`.
+2. **API surface**: grep hosts/endpoints (`https://`, `/v1/`, `Retrofit`, `OkHttp`),
+   class names `*Client`, `*Service`, `*Api`.
+3. **Request contract**: find DTOs/`@SerializedName`, builders, header interceptors,
+   signature/HMAC/AES helpers. Note order: token → endpoint → body → headers.
+4. **Native**: `readelf -d lib/*.so`, `strings` for endpoints/keys; JNI methods
+   (`Java_...`) bridge Java ↔ C.
+5. **Dynamic verification**: hook key methods with Frida (not HAR capture), log
+   args/return values; for protected SDKs, dump dex/native first.
 
-## Yang dicari
-- Base URL, path, query, header wajib (Device-ID, X-Signature, Authorization).
-- Alur auth: client_credentials, OTP, refresh token, 2FA challenge.
-- Enkripsi body: AES-GCM key/IV, RSA, HMAC secret.
-- Device fingerprint: mana yang benar-benar dipakai server.
+## What to look for
+- Base URL, path, query, required headers (Device-ID, X-Signature, Authorization).
+- Auth flow: client_credentials, OTP, refresh token, 2FA challenge.
+- Body encryption: AES-GCM key/IV, RSA, HMAC secret.
+- Device fingerprint: which parts the server actually uses.
 
-## Pitfall
-- Jangan menganggap nama class = perilaku; verifikasi lewat hook.
-- Obfuscation (R8) mengubah nama; pakai string/endpoint sebagai jangkar.
-- SDK pihak ketiga bisa memakai certificate pinning; siapkan unpin terarah.
-- Dokumentasikan temuan sebagai kontrak API, bukan tebakan.
+## Pitfalls
+- Don't assume a class name equals behavior; verify via hooks.
+- R8 obfuscation renames classes; use strings/endpoints as anchors.
+- Third-party SDKs may use cert pinning; prepare targeted unpinning.
+- Document findings as an API contract, not guesses.

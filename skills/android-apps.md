@@ -1,24 +1,24 @@
-# Android — kelola aplikasi
+# Android — manage apps
 
-Gunakan saat user minta lihat/install/uninstall/buka aplikasi di HP.
+Use when the user asks to list/install/uninstall/launch apps.
 
-## Lihat
-- `android_list_apps` → `pm list packages -3` (third-party). `all=true` untuk semua.
-- `android_app_info {"package":"..."}` → versi, signature, codePath, split, userId.
-- Detail manual: `dumpsys package <pkg> | grep -E 'versionName|signatures|codePath|splitName'`.
+## List
+- `android_list_apps` → `pm list packages -3` (third-party). `all=true` for all.
+- `android_app_info {"package":"..."}` → version, signature, codePath, split, userId.
+- Manual: `dumpsys package <pkg> | grep -E 'versionName|signatures|codePath|splitName'`.
 
 ## Install
-1. Coba `android_install {"path":"/storage/emulated/0/Download/app.apk"}`.
-2. Kalau `Failed transaction (2147483646)` atau `INSTALL_FAILED_*`:
-   - `termux-open "/storage/emulated/0/Download/app.apk"` → user ketuk Install.
-   - Split/XAPK/APKS → buka dengan SAI (Split APKs Installer).
-3. Jangan ulangi `pm install` yang sama berkali-kali; pindah jalur.
+1. `android_install {"path":"/storage/emulated/0/Download/app.apk"}`.
+2. On `Failed transaction (2147483646)` or `INSTALL_FAILED_*`:
+   - `termux-open "<path>"` then the user taps Install.
+   - Split/XAPK/APKS → open with SAI (Split APKs Installer).
+3. Don't repeat the same `pm install`; switch path.
 
-## Uninstall / buka
-- `android_uninstall {"package":"..."}` (konfirmasi dulu).
+## Uninstall / launch
+- `android_uninstall {"package":"..."}` (confirm first).
 - `android_launch {"package":"..."}` → `monkey -p <pkg> -c android.intent.category.LAUNCHER 1`.
 
-## Pitfall
-- `pm install` dari shell kadang ditolak PackageManager ROM tertentu; installer UI lebih pasti.
-- APK split wajib semua bagian (base + config.abi + density) dengan signature sama.
-- File APK untuk dipakai di luar Termux taruh di `/storage/emulated/0/Download/`.
+## Pitfalls
+- Shell `pm install` can be rejected by some ROMs; the UI installer is more reliable.
+- Split APKs need every part (base + config.abi + density) with the same signature.
+- Put APK files meant for other apps under `/storage/emulated/0/Download/`.

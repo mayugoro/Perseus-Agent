@@ -1,4 +1,4 @@
-# Contoh skill
+# Example skill
 
-Skill adalah instruksi markdown yang dimuat on-demand lewat `skill_view`.
-Tulis prosedur pendek: kapan dipakai, langkah, pitfall.
+A skill is a markdown instruction loaded on demand via `skill_view`.
+Write short procedures: when to use, steps, pitfalls.

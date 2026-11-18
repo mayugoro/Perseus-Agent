@@ -1,18 +1,18 @@
 # Android — backup & restore
 
-Gunakan sebelum flashing, patch sistem, atau operasi berisiko.
+Use before flashing, patching system, or any risky operation.
 
-## Backup file
+## File backup
 - `tar -czf /sdcard/backup.tar.gz /data/data/<pkg>` (root).
-- `adb backup` sudah tidak andal di Android baru; utamakan tar root.
-- Backup aplikasi + data: `pm path <pkg>`, copy APK + tar data dir.
+- `adb backup` is unreliable on modern Android; prefer root tar.
+- Back up app + data: `pm path <pkg>`, copy the APK and tar the data dir.
 
-## Partisi (hati-hati)
-- Cari nama: `ls -l /dev/block/by-name/`.
-- Backup: `su -c "dd if=/dev/block/by-name/boot of=/sdcard/boot.img"`.
-- Jangan `dd` ke partisi kecuali yakin; salah target = brick.
+## Partitions (careful)
+- Find names: `ls -l /dev/block/by-name/`.
+- Back up: `su -c "dd if=/dev/block/by-name/boot of=/sdcard/boot.img"`.
+- Never `dd` to a partition unless sure; wrong target = brick.
 
-## Aturan
-- Konfirmasi user sebelum menulis partisi.
-- Simpan backup di luar /data (mis. /sdcard atau tarik ke PC).
-- Catat checksum: `sha256sum`.
+## Rules
+- Confirm with the user before writing a partition.
+- Keep backups outside /data (e.g. /sdcard or pull to PC).
+- Record checksums: `sha256sum`.

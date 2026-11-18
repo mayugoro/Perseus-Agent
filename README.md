@@ -5,6 +5,13 @@ provider API (OpenAI-compatible) — no local model, GGUF, ONNX, or CPU inferenc
 
 Created by **Mayugoro** (github.com/mayugoro).
 
+> **Not a Hermes fork.** Perseus is a standalone project that borrows the same
+> *UX concept* as Hermes (slash commands, status bar, sessions, skills), but the
+> code is independent and focused on **Android only**. Perseus can read/inspect
+> files and drive the shell/terminal; on a **rooted** device it runs with
+> superuser (root) privileges, which is what unlocks its full, unrestricted
+> capability on Android.
+
 This repo ships **configuration-free**: base URL, model, and API key are set by
 you on first setup. No provider is hardcoded.
 

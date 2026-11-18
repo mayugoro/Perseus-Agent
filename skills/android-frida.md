@@ -1,22 +1,19 @@
-# Android — Frida untuk analisis dinamis
+# Android — Frida for dynamic analysis
 
-Gunakan saat perlu inspeksi runtime (bukan capture HAR).
+Use when runtime inspection is needed (not HAR capture).
 
-## Pasang
-- Root: push `frida-server` sesuai ABI ke `/data/local/tmp`, `chmod 755`, jalankan
-  `su -c "/data/local/tmp/frida-server -D &"`.
-- Klien: `pip install frida-tools`; cek `frida-ps -U`.
+## Install
+- Root: push `frida-server` for the right ABI to `/data/local/tmp`, `chmod 755`, run `su -c "/data/local/tmp/frida-server -D &"`.
+- Client: `pip install frida-tools`; check `frida-ps -U`.
 - Spawn: `frida -U -f <pkg> -l hook.js --no-pause`.
 
-## Pola hook
+## Hook patterns
 - Java: `Java.perform(() => { const C = Java.use('...'); C.method.implementation = function(...) {...}; });`
 - Native: `Interceptor.attach(Module.findExportByName('libx.so','func'), {...})`.
-- Cari class: `Java.enumerateLoadedClasses({onMatch: n => ...})`.
-- Bypass SSL pinning: hook `X509TrustManager` / `SSLContext`; untuk Flutter butuh
-  patch native BoringSSL, bukan hook Java.
+- Enumerate classes: `Java.enumerateLoadedClasses({onMatch: n => ...})`.
+- SSL unpin: hook `X509TrustManager` / `SSLContext`; Flutter needs a native BoringSSL patch, not a Java hook.
 
-## Pitfall
-- App anti-tamper mendeteksi frida-server (nama proses/port/maps); hentikan setelah
-  selesai, reboot bila perlu.
-- Frida 17 tidak bundle Java bridge; compile dengan frida-compile bila script Java.
-- Jangan tinggalkan frida-server jalan saat app produksi dipakai.
+## Pitfalls
+- Anti-tamper detects frida-server (process name/port/maps); stop it and reboot when done.
+- Frida 17 has no Java bridge by default; compile with frida-compile for Java scripts.
+- Don't leave frida-server running while a production app is in use.

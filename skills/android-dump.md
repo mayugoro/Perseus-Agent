@@ -1,27 +1,23 @@
-# Android — dump dex / native dari memori
+# Android — dump dex / native from memory
 
-Gunakan saat APK terproteksi (packer) dan dex asli hanya ada di memori.
+Use for protected (packed) apps whose original dex only exists in memory.
 
-## Prasyarat
-- Root + process target hidup.
-- `PID=$(pidof <pkg>)`; cek `cat /proc/$PID/maps | grep -E 'dex|oat|so'`.
+## Prerequisites
+- Root + a running target process.
+- `PID=$(pidof <pkg>)`; `cat /proc/$PID/maps | grep -E 'dex|oat|so'`.
 
-## Dump dex manual
-1. Lihat mapping: `grep -E '\.dex|dalvik' /proc/$PID/maps`.
-2. Ambil rentang `start-end` yang relevan:
-   `dd if=/proc/$PID/mem of=/sdcard/dump.bin bs=1 skip=$((0xSTART)) count=$((0xEND-0xSTART))`
-   (butuh root; `skip` desimal).
-3. Cari magic `dex\n035` di hasil, potong per header dex (offset+size di header).
-4. Validasi: `dexdump`/jadx; dex rusak bisa diperbaiki header checksum.
+## Manual dex dump
+1. `grep -E '\.dex|dalvik' /proc/$PID/maps`.
+2. Copy a range: `dd if=/proc/$PID/mem of=/sdcard/dump.bin bs=1 skip=$((0xSTART)) count=$((0xEND-0xSTART))` (root; skip is decimal).
+3. Find `dex\n035` magic, split per dex header (offset+size in header).
+4. Validate with `dexdump`/jadx; repair header checksums if broken.
 
-## Tool praktis
-- Frida script dump dex (cari `DexDump`, `frida-dexdump`): `pip install frida-dexdump`,
-  `frida-dexdump -U -f <pkg>`.
-- Native lib dump: cari `r-xp` segment `.so` di maps, `dd` rentang, simpan `.so`,
-  lalu `readelf -h` untuk validasi.
-- `gcore` (gdb) bisa membuat core dump penuh; berat di HP.
+## Practical tools
+- Frida dex dump scripts (`frida-dexdump`): `pip install frida-dexdump`, `frida-dexdump -U -f <pkg>`.
+- Native lib dump: find the `r-xp` `.so` segment in maps, `dd` the range, save `.so`, `readelf -h` to validate.
+- `gcore` (gdb) makes a full core dump; heavy on phones.
 
-## Pitfall
-- Packer sering menghapus dex dari disk; dump harus saat app sudah decrypt.
-- Jangan dump saat app background (memori bisa di-reclaim).
-- File dump besar: taruh di `/sdcard` atau tarik ke PC, bukan workspace.
+## Pitfalls
+- Packers often remove dex from disk; dump only after decryption.
+- Don't dump while backgrounded (memory may be reclaimed).
+- Write large dumps to /sdcard and pull to PC, not the workspace.

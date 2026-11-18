@@ -1,18 +1,18 @@
-# Termux — service, cron, dan tugas latar
+# Termux — services, cron, background tasks
 
-Gunakan saat menjalankan proses periodik atau server kecil di HP.
+Use for periodic processes or a small server on the phone.
 
-## Wake lock & service
-- `termux-wake-lock` sebelum tugas panjang; `termux-wake-unlock` setelah.
+## Wake lock & services
+- `termux-wake-lock` before long tasks; `termux-wake-unlock` after.
 - `pkg install termux-services`; `sv-enable <service>`, `sv up <service>`.
-- Service script di `~/.termux/service/<nama>/run`.
+- Service scripts live in `~/.termux/service/<name>/run`.
 
-## Jadwal
-- `pkg install cronie`; `crond` lalu `crontab -e`.
-- Alternatif Android: `termux-job-scheduler --script <path> --period-ms 900000`.
-- Job scheduler bertahan setelah reboot; cron biasa tidak otomatis.
+## Scheduling
+- `pkg install cronie`; `crond` then `crontab -e`.
+- Android alternative: `termux-job-scheduler --script <path> --period-ms 900000`.
+- Job-scheduler survives reboot; plain cron does not auto-start.
 
-## Pitfall
-- Doze membunuh proses; wake-lock + notification foreground membantu.
-- Log ke file (`>> ~/logs/task.log 2>&1`) karena output service tidak terlihat.
-- Jangan menjalankan loop tanpa jeda; baterai dan suhu naik.
+## Pitfalls
+- Doze kills processes; wake-lock + a foreground notification help.
+- Log to a file (`>> ~/logs/task.log 2>&1`) since service output is invisible.
+- Don't loop without a delay; battery and heat rise.

@@ -1,21 +1,21 @@
-# Android — inspeksi sistem dengan dumpsys/cmd
+# Android — inspect the system with dumpsys/cmd
 
-Gunakan saat butuh status baterai, activity, package, wifi, settings.
+Use for battery, activity, package, wifi, or settings status.
 
-## Perintah umum
-- Baterai: `dumpsys battery`
+## Common commands
+- Battery: `dumpsys battery`
 - Activity: `dumpsys activity activities | head -40`
-- Paket: `dumpsys package <pkg>`
+- Package: `dumpsys package <pkg>`
 - WiFi: `dumpsys wifi | head -40`
 - Settings: `settings get global <key>`, `settings list global`
-- Properti: `getprop | grep <key>`
-- Service: `service list | head`, `cmd -l`
+- Properties: `getprop | grep <key>`
+- Services: `service list | head`, `cmd -l`
 
-## Kontrol
+## Control
 - `am start -n <pkg>/<activity>`, `am force-stop <pkg>`
-- `pm disable-user --user 0 <pkg>` (bloatware; reversible dengan `pm enable`)
+- `pm disable-user --user 0 <pkg>` (bloatware; reversible with `pm enable`)
 - `cmd package resolve-activity --brief <pkg>`
 
-## Pitfall
-- `dumpsys` bisa sangat panjang; selalu pipe `head`/`grep` agar context aman.
-- `pm disable-user` pada paket sistem bisa merusak fitur; catat paket sebelum disable.
+## Pitfalls
+- `dumpsys` output is huge; always pipe `head`/`grep` to keep context safe.
+- `pm disable-user` on a system package can break features; note the package first.

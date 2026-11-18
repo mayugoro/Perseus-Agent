@@ -1,30 +1,30 @@
-# Android — build, patch, sign APK di Termux
+# Android — build, patch, sign APKs in Termux
 
-Gunakan saat user minta decompile, patch smali, repack, atau sign APK.
+Use when asked to decompile, patch smali, repack, or sign an APK.
 
-## Tool
-- `pkg install openjdk-17 apktool aapt apksigner` (cek `pkg search` bila nama beda).
-- jadx (decompile Java): `pkg install jadx` atau binary rilis.
-- Dekompilasi: `apktool d -f app.apk -o out`.
-- Build: `apktool b out -o unsigned.apk`.
+## Tools
+- `pkg install openjdk-17 apktool aapt apksigner` (check `pkg search` if names differ).
+- jadx (Java decompile): `pkg install jadx` or a release binary.
+- Decompile: `apktool d -f app.apk -o out`.
+- Rebuild: `apktool b out -o unsigned.apk`.
 - Align + sign:
   `zipalign -p -f 4 unsigned.apk aligned.apk`
   `apksigner sign --ks key.keystore --ks-pass pass:... --out signed.apk aligned.apk`
-- Verifikasi: `apksigner verify --print-certs signed.apk`.
+- Verify: `apksigner verify --print-certs signed.apk`.
 
-## Aturan split
-- Base + split (abi/density/language) harus di-sign dengan key yang sama.
-- Jangan paksa standalone kalau manifest punya `requiredSplitTypes`.
-- Untuk bundle split, buat XAPK (manifest.json + base + split) lalu install via SAI.
+## Split rules
+- Base + splits (abi/density/language) must be signed with the same key.
+- Don't force standalone if the manifest has `requiredSplitTypes`.
+- For split bundles, make an XAPK (manifest.json + base + splits) and install via SAI.
 
-## Patch dex
-- Prioritas: patch smali kecil (1–3 method), bukan rebuild resource.
-- Jangan rebuild `resources.arsc` kalau resource tersebar di split; pertahankan
-  resource asli dan ganti hanya dex/manifest.
-- Binary manifest bisa diedit tanpa decode resource; hindari aapt2 link ulang
-  kalau ID resource tidak lengkap.
+## Dex patching
+- Prefer small smali patches (1–3 methods) over rebuilding resources.
+- Don't rebuild `resources.arsc` when resources live in splits; keep the originals
+  and replace only dex/manifest.
+- A binary manifest can be edited without decoding resources; avoid relinking with
+  aapt2 when resource IDs are incomplete.
 
-## Pitfall
-- Re-sign APK = signature berubah; app dengan integrity check bisa menolak.
-- `pm install` bisa gagal di ROM tertentu; pakai installer UI/SAI.
-- Selalu uji `apksigner verify` dan `unzip -l` (dex/lib/asset ada) sebelum menyerahkan.
+## Pitfalls
+- Re-signing changes the signature; apps with integrity checks may reject it.
+- `pm install` can fail on some ROMs; use the UI installer / SAI.
+- Always run `apksigner verify` and check `unzip -l` before delivering.

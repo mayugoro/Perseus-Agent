@@ -1,24 +1,24 @@
-# Android — modul LSPosed (Xposed)
+# Android — LSPosed (Xposed) modules
 
-Gunakan saat membuat/mendebug modul Xposed untuk app tertentu.
+Use when building/debugging an Xposed module for a specific app.
 
-## Struktur modul
+## Module layout
 ```
 AndroidManifest.xml  # meta-data xposedmodule, xposeddescription, xposedminversion
-assets/xposed_init   # nama kelas implementasi IXposedHookLoadPackage
-classes.dex          # compile dengan android.jar + stub API
+assets/xposed_init   # class implementing IXposedHookLoadPackage
+classes.dex          # compile against android.jar + stub API
 ```
-- Build tanpa Gradle: `aapt2 link` → tambah classes.dex + assets → zipalign → apksigner.
-- Stub API LSPosed diperlukan saat compile; runtime disediakan LSPosed.
+- Build without Gradle: `aapt2 link` → add classes.dex + assets → zipalign → apksigner.
+- LSPosed's stub API is needed at compile; the runtime is provided by LSPosed.
 
-## Pola hook
+## Hook patterns
 - Filter package: `if (!lpp.packageName.equals(TARGET)) return;`
-- `XposedBridge.hookAllMethods(cls, "nama", cb)`; log via `XposedBridge.log`.
-- Hook method native sering tidak stabil → utamakan Java, hindari hook native.
-- Jangan hook terlalu awal sebelum classloader siap.
+- `XposedBridge.hookAllMethods(cls, "name", cb)`; log with `XposedBridge.log`.
+- Hooking native methods is often unstable → prefer Java, avoid native hooks.
+- Don't hook too early, before the classloader is ready.
 
-## Pitfall
-- Modul harus di-enable + scope dicentang; force-stop app setelah mengubah scope.
-- DenyList + Enforce ON membuat Zygisk tidak menyuntik → modul tidak muncul di log.
-- Log modul: `logcat | grep -E 'LSPosed|NamaModul'`.
-- Signature APK modul tidak perlu sama dengan target.
+## Pitfalls
+- Enable the module and check its scope; force-stop the app after changing scope.
+- DenyList + Enforce ON disables Zygisk injection → module never appears in logs.
+- Module logs: `logcat | grep -E 'LSPosed|ModuleName'`.
+- Module APK signature need not match the target.

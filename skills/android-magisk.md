@@ -1,27 +1,27 @@
-# Android — modul Magisk
+# Android — Magisk modules
 
-Gunakan saat membuat/memasang modul Magisk systemless.
+Use when creating/installing systemless Magisk modules.
 
-## Struktur minimal
+## Minimal layout
 ```
 modul/
   module.prop          # id, name, version, versionCode, author, description
-  post-fs-data.sh      # opsional, jalan awal boot
-  service.sh           # opsional, setelah boot
-  system/              # file systemless (mirror /system)
-  customize.sh         # installer (opsional)
+  post-fs-data.sh      # optional, runs early boot
+  service.sh           # optional, after boot
+  system/              # systemless files (mirror of /system)
+  customize.sh         # installer (optional)
 ```
-Zip isi folder (bukan folder induk): `cd modul && zip -r ../modul.zip .`
+Zip the folder contents (not the parent): `cd modul && zip -r ../modul.zip .`
 
-## Pasang / kelola
+## Install / manage
 - `su -c "magisk --install-module /path/modul.zip"`
-- `su -c "magisk --remove-modules"` (hapus semua, hati-hati)
-- Enable/disable: buat/hapus `disable` di `/data/adb/modules/<id>/`
-- Log: `/data/adb/magisk.log`, `logcat | grep magisk`
-- Reboot diperlukan untuk apply.
+- `su -c "magisk --remove-modules"` (removes all, careful)
+- Enable/disable: create/remove `disable` in `/data/adb/modules/<id>/`
+- Logs: `/data/adb/magisk.log`, `logcat | grep magisk`
+- Reboot is required to apply.
 
-## Pitfall
-- `module.prop` id harus unik, tanpa spasi.
-- Script harus LF (bukan CRLF) dan `chmod 755`.
-- Salah path di system/ bisa bootloop; sediakan `uninstall.sh` dan akses recovery.
-- Jangan menaruh file besar; /data adb quota terbatas.
+## Pitfalls
+- `module.prop` id must be unique, no spaces.
+- Scripts must be LF (not CRLF) and `chmod 755`.
+- A wrong `system/` path can cause a bootloop; keep a `uninstall.sh` and recovery access.
+- Don't store big files; /data adb quota is limited.
