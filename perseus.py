@@ -15,6 +15,26 @@ from core.agent import Agent
 
 C = {"b": "\033[1m", "c": "\033[36m", "y": "\033[33m", "r": "\033[31m", "0": "\033[0m"}
 
+BANNER = r"""
+ ██████╗ ███████╗██████╗ ███████╗███████╗██╗   ██╗███████╗
+ ██╔══██╗██╔════╝██╔══██╗██╔════╝██╔════╝██║   ██║██╔════╝
+ ██████╔╝█████╗  ██████╔╝███████╗█████╗  ██║   ██║███████╗
+ ██╔═══╝ ██╔══╝  ██╔══██╗╚════██║██╔══╝  ██║   ██║╚════██║
+ ██║     ███████╗██║  ██║███████║███████╗╚██████╔╝███████║
+ ╚═╝     ╚══════╝╚═╝  ╚═╝╚══════╝╚══════╝ ╚═════╝ ╚══════╝
+"""
+
+
+def banner(cfg: dict) -> None:
+    print(f"{C['c']}{BANNER}{C['0']}")
+    print(f"  {C['b']}Perseus{C['0']} · Termux AI Agent")
+    print(f"  model     : {cfg['model']}")
+    print(f"  provider  : {cfg['base_url']}")
+    print(f"  mode      : {cfg['permission']}")
+    print(f"  workspace : {cfg['workspace']}")
+    print(f"  {C['y']}/help{C['0']} bantuan · {C['y']}/tools{C['0']} daftar tool · "
+          f"{C['y']}/exit{C['0']} keluar\n")
+
 
 def show_tools(agent: Agent) -> None:
     for t in agent.registry.tools.values():
@@ -111,9 +131,7 @@ def main() -> int:
         print(agent.run(a.prompt))
         return 0
 
-    print(f"{C['b']}Perseus{C['0']} · {cfg['model']} · mode={cfg['permission']}")
-    print(f"workspace: {cfg['workspace']}")
-    print("ketik /help untuk bantuan, /exit keluar\n")
+    banner(cfg)
 
     while True:
         try:
