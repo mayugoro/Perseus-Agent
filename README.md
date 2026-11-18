@@ -66,7 +66,8 @@ butuh TTY). Tab/arah untuk memilih, Enter untuk menjalankan.
 /reasoning [level]         default|low|medium|high
 /steps [N]                 batas langkah tool (0/default = unlimited)
 /sessions                  daftar sesi tersimpan
-/resume N                  lanjutkan sesi ke-N
+/resume <N|id|title>       lanjutkan sesi
+/title [teks]              atur judul sesi
 /session                   info sesi aktif
 /learn                     auto-belajar on/off
 /agents [on|off|max N]     subagent paralel
@@ -95,7 +96,8 @@ Sesi disimpan di **SQLite + FTS5**: `~/.perseus/state.db`
 
 - `/sessions` — daftar sesi (waktu, turn, jumlah pesan, cuplikan)
 - `/sessions <kata>` — cari isi percakapan lewat FTS5
-- `/resume N` — muat konteks sesi ke-N
+- `/resume N` / `/resume <id>` / `/resume <title>` — muat konteks sesi
+- `/title <teks>` — atur judul sesi (tampil di `/sessions` dan `/exit`)
 - `/session` — ID sesi aktif
 - Saat `/exit`, Perseus menampilkan ringkasan sesi + perintah resume
 
@@ -103,6 +105,7 @@ Resume dari shell:
 
 ```bash
 perseus -c 20261118-204418-715     # id penuh
+perseus -c "ngobrol kopi"          # title sesi
 perseus -c 20261118               # awalan id (yang terbaru cocok)
 perseus -resume 20261118-204418-715
 perseus -c <id> -p "lanjutkan tugas tadi"

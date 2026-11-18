@@ -25,6 +25,7 @@ SLASH = [
     ("/learn", "toggle auto-learn ke memory"), ("/queue", "antrean tugas"),
     ("/agents", "subagent paralel"), ("/steps", "batas langkah tool"),
     ("/sessions", "daftar / cari sesi"), ("/resume", "lanjutkan sesi"),
+    ("/title", "atur judul sesi"),
     ("/session", "info sesi aktif"), ("/exit", "keluar"),
 ]
 
@@ -294,6 +295,7 @@ def main() -> int:
             st = sess.stats(agent.session_id) if agent.session_id else None
             if st:
                 print(f"\nsession : {st['id']}")
+                print(f"title   : {st['title'] or '-'}")
                 print(f"waktu   : {sess.fmt_time(st['created'])} → {sess.fmt_time(st['updated'])}")
                 print(f"isi     : {st['turns']} turn · {st['total']} pesan · model {st['model'] or '-'}")
                 print(f"db      : {sess.DB}")
@@ -388,6 +390,15 @@ def main() -> int:
             else:
                 print(f"max_steps={'unlimited' if agent.max_steps <= 0 else agent.max_steps}")
             continue
+        if line == "/title" or line.startswith("/title "):
+            if " " in line:
+                t = line.split(None, 1)[1].strip()
+                sess.set_title(agent.session_id, t)
+                print(f"title={t}")
+            else:
+                st = sess.stats(agent.session_id) if agent.session_id else None
+                print(f"title: {st['title'] if st and st['title'] else '(belum ada)'}")
+            continue
         if line == "/session":
             print(f"id: {agent.session_id}")
             print(f"pesan: {len(agent.messages)}")
@@ -404,18 +415,26 @@ def main() -> int:
         if line == "/sessions" or line.startswith("/resume"):
             if line.startswith("/resume"):
                 arg = line.split(None, 1)[1].strip() if " " in line else ""
-                rows = sess.list_sessions()
-                if not arg.isdigit() or not (1 <= int(arg) <= len(rows)):
-                    print("format: /resume N  (lihat /sessions)")
-                    continue
-                r = rows[int(arg) - 1]
-                msgs = sess.load(r["id"])
+                if arg.isdigit():
+                    rows = sess.list_sessions()
+                    if not (1 <= int(arg) <= len(rows)):
+                        print("nomor tidak ada (lihat /sessions)")
+                        continue
+                    sid = rows[int(arg) - 1]["id"]
+                else:
+                    sid = sess.resolve(arg) if arg else None
+                    if not sid:
+                        print("sesi tidak ditemukan (id, awalan id, atau title)")
+                        continue
+                msgs = sess.load(sid)
                 if not msgs:
                     print("(sesi kosong)")
                     continue
+                st = sess.stats(sid)
                 agent.messages = msgs
-                agent.session_id = r["id"]
-                print(f"resume: {sess.fmt_time(r['updated'])} · {r['turns']} turn · {len(msgs)} pesan")
+                agent.session_id = sid
+                print(f"resume: {st['title'] or sid} · {sess.fmt_time(st['updated'])} · "
+                      f"{st['turns']} turn · {len(msgs)} pesan")
                 continue
             rows = sess.list_sessions()
             if not rows:

@@ -143,10 +143,20 @@ def search(query: str, limit: int = 10) -> list[dict]:
     return [{"id": r[0], "updated": r[1], "title": r[2], "snippet": r[3]} for r in rows]
 
 
-def resolve(prefix: str) -> str | None:
+def set_title(sid: str, title: str) -> None:
     c = _conn()
-    rows = c.execute("SELECT id FROM sessions WHERE id LIKE ? ORDER BY updated DESC LIMIT 1",
-                     (prefix + "%",)).fetchall()
+    c.execute("UPDATE sessions SET title=? WHERE id=?", (title[:200], sid))
+    c.commit()
+    c.close()
+
+
+def resolve(text: str) -> str | None:
+    """Cocokkan id penuh, awalan id, atau title (case-insensitive)."""
+    c = _conn()
+    rows = c.execute("""
+        SELECT id FROM sessions
+        WHERE id=? OR id LIKE ? OR lower(title)=lower(?)
+        ORDER BY updated DESC LIMIT 1""", (text, text + "%", text)).fetchall()
     c.close()
     return rows[0][0] if rows else None
 
