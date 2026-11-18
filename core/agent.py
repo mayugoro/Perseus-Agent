@@ -210,7 +210,7 @@ class Agent:
         frames = "⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏"
         body = " thinking…"
         w = 1 + len(body)  # lebar tampilan (braille=1 kolom)
-        sys.stdout.write("\033[2m" + frames[0] + body + "\033[0m")
+        sys.stdout.write("\n\033[2m" + frames[0] + body + "\033[0m")
         sys.stdout.flush()
         i = 1
         while not stop.wait(0.12):
