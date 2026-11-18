@@ -151,7 +151,7 @@ def pick_reasoning(current: str = "") -> str | None:
     """Tampilkan pilihan vertikal; return value baru, None = batal/pertahankan."""
     print("Reasoning:")
     for i, (label, _) in enumerate(REASONING_OPTS, 1):
-        mark = " *" if (label == "auto" and not current) or label == current else "  "
+        mark = "❯ " if (label == "auto" and not current) or label == current else "  "
         print(f"{mark}{i}. {label}")
     raw = input("Pick reasoning number [Enter=keep]: ").strip()
     if not raw:
@@ -624,7 +624,7 @@ def main() -> int:
                     models = []
                 if models:
                     for i, mid in enumerate(models[:40], 1):
-                        mark = " *" if mid == agent.llm.model else "  "
+                        mark = "❯ " if mid == agent.llm.model else "  "
                         print(f"{mark}{i}. {mid}")
                     if len(models) > 40:
                         print(f"   … {len(models)-40} model lain")
