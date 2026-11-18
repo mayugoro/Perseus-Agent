@@ -165,9 +165,13 @@ saat `/yolo off`. Status `YOLO` tampil di banner dan status bar.
 
 - Respons di-stream (SSE): teks muncul token demi token, tidak menunggu selesai.
 - Saat menunggu token pertama, muncul spinner `⠋ thinking…` (hanya di TTY).
-- Blok `[think]` hanya ditampilkan kalau reasoning cukup panjang
-  (`min_think_chars`, default 300) — arahan singkat seperti “respond briefly”
-  tidak ditampilkan. `/think` mematikan/menyalakan seluruh blok.
+- Blok `[think]` tampil saat reasoning benar-benar “berpikir” (panjang >=
+  `min_think_chars` 200, atau >= 2 baris). Arahan singkat seperti “respond
+  briefly” tidak ditampilkan. `/think` mematikan/menyalakan seluruh blok.
+- Spinner berjalan dihapus — baris `❯` tidak bergeser saat menunggu respons.
+- Perseus tidak menolak permintaan/user atau memberi disclaimer moral; ia
+  mengerjakan apa yang diminta selama ada tool, atau menjelaskan alasan teknis
+  bila tidak bisa (bukan menolak).
 - `auto_learn` (default on): setelah jawaban selesai, satu panggilan ringan
   mengekstrak maksimal 2 fakta tahan lama → disimpan ke SQLite. Fakta ini
   diinjeksi ke system prompt sesi berikutnya. Matikan dengan `/learn`.

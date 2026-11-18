@@ -22,7 +22,7 @@ DEFAULTS = {
     "allow_root": False,
     "api_key_env": "PERSEUS_API_KEY",
     "show_reasoning": True,
-    "min_think_chars": 300,
+    "min_think_chars": 200,
     "reasoning_effort": "high",
     "auto_learn": True,
     "context_messages": 36,
