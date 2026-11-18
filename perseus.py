@@ -18,6 +18,16 @@ from core.llm import LLM
 
 C = {"b": "\033[1m", "c": "\033[36m", "y": "\033[33m", "r": "\033[31m", "0": "\033[0m"}
 
+SLASH = [
+    ("/help", "bantuan"), ("/tools", "daftar tool"), ("/new", "reset percakapan"),
+    ("/mode", "ask | auto | read-only"), ("/model", "daftar / pilih model"),
+    ("/reasoning", "default | low | medium | high"), ("/think", "toggle blok thinking"),
+    ("/learn", "toggle auto-learn ke memory"), ("/queue", "antrean tugas"),
+    ("/agents", "subagent paralel"), ("/steps", "batas langkah tool"),
+    ("/sessions", "daftar / cari sesi"), ("/resume", "lanjutkan sesi"),
+    ("/session", "info sesi aktif"), ("/exit", "keluar"),
+]
+
 BANNER = r"""
  ██████╗ ███████╗██████╗ ███████╗███████╗██╗   ██╗███████╗
  ██╔══██╗██╔════╝██╔══██╗██╔════╝██╔════╝██║   ██║██╔════╝
@@ -37,6 +47,49 @@ def banner(cfg: dict) -> None:
     print(f"  workspace : {cfg['workspace']}")
     print(f"  {C['y']}/help{C['0']} bantuan · {C['y']}/tools{C['0']} daftar tool · "
           f"{C['y']}/exit{C['0']} keluar\n")
+
+
+def build_prompt():
+    """PromptSession dengan completion; None kalau bukan TTY/tanpa prompt_toolkit."""
+    if not sys.stdin.isatty():
+        return None
+    try:
+        from prompt_toolkit import PromptSession
+        from prompt_toolkit.completion import Completer, Completion
+        from prompt_toolkit.history import FileHistory
+
+        class SlashCompleter(Completer):
+            def get_completions(self, document, complete_event):
+                text = document.text_before_cursor
+                if not text.startswith("/"):
+                    return
+                parts = text.split()
+                if len(parts) <= 1 and not text.endswith(" "):
+                    prefix = parts[0] if parts else ""
+                    for cmd, desc in SLASH:
+                        if cmd.startswith(prefix):
+                            yield Completion(cmd, start_position=-len(prefix),
+                                             display_meta=desc)
+                    return
+                opts = {
+                    "/mode": ["ask", "auto", "read-only"],
+                    "/reasoning": ["default", "low", "medium", "high"],
+                    "/agents": ["on", "off", "max", "permission"],
+                    "/queue": ["run", "clear", "rm"],
+                }.get(parts[0], [])
+                if opts:
+                    prefix = parts[-1] if not text.endswith(" ") else ""
+                    for o in opts:
+                        if o.startswith(prefix):
+                            yield Completion(o, start_position=-len(prefix))
+
+        hist = Path.home() / ".perseus" / "history"
+        hist.parent.mkdir(parents=True, exist_ok=True)
+        return PromptSession("perseus> ", completer=SlashCompleter(),
+                             complete_while_typing=True,
+                             history=FileHistory(str(hist)))
+    except Exception:
+        return None
 
 
 def run_show(agent: Agent, text: str) -> str:
@@ -183,10 +236,14 @@ def main() -> int:
         return 0
 
     banner(cfg)
+    ps = build_prompt()
 
     while True:
         try:
-            line = input(f"{C['c']}perseus>{C['0']} ").strip()
+            if ps:
+                line = ps.prompt().strip()
+            else:
+                line = input(f"{C['c']}perseus>{C['0']} ").strip()
         except (EOFError, KeyboardInterrupt):
             print()
             break

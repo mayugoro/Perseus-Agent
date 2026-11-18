@@ -52,6 +52,9 @@ export PERSEUS_API_KEY='...'
 
 ## Perintah REPL
 
+Ketik `/` — daftar perintah muncul otomatis (completion `prompt_toolkit`,
+butuh TTY). Tab/arah untuk memilih, Enter untuk menjalankan.
+
 ```
 /help                      bantuan
 /tools                     daftar tool

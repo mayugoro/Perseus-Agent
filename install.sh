@@ -3,6 +3,7 @@ set -e
 cd "$(dirname "$0")"
 
 pkg install -y python git
+python3 -m pip install --quiet --upgrade prompt_toolkit || true
 
 python3 perseus.py --init
 
