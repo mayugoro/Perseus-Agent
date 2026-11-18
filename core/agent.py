@@ -94,13 +94,22 @@ class Agent:
     def _learn(self, user_text: str, answer: str) -> None:
         if not self.auto_learn:
             return
+        low = user_text.lower().strip()
+        cues = ("ingat", "catat", "selalu", "jangan", "suka", "prefer", "nama",
+                "aku ", "saya ", "panggil", "kerja", "prosedur", "aturan", "mulai sekarang")
+        smalltalk = ("mantap", "keren", "bagus", "thanks", "terima kasih", "ok", "sip",
+                     "haha", "wkwk", "👍")
+        if (len(low) < 25 and not any(c in low for c in cues)) or (
+                any(low.startswith(s) for s in smalltalk) and not any(c in low for c in cues)):
+            return
         try:
             r = self.llm.chat([
                 {"role": "system", "content":
-                 "Ekstrak maksimal 2 fakta tahan lama dari percakapan. Awali tiap baris "
-                 "dengan 'profile: ' untuk fakta tentang user (nama, preferensi, kebiasaan) "
-                 "atau 'memory: ' untuk konvensi/prosedur/keputusan kerja. Jika tidak ada "
-                 "yang layak disimpan, tulis NONE."},
+                 "Ekstrak maksimal 2 fakta tahan lama. Awali 'profile: ' untuk fakta user "
+                 "(nama, preferensi, kebiasaan) atau 'memory: ' untuk konvensi/prosedur/"
+                 "keputusan kerja yang disepakati. JANGAN simpan: pujian, basa-basi, fakta "
+                 "tentang Perseus sendiri (jumlah skill, context, cara kerja internal), "
+                 "atau ringkasan jawaban. Jika tidak ada, tulis NONE."},
                 {"role": "user", "content": f"USER: {user_text[:3000]}\n\nASSISTANT: {answer[:3000]}"},
             ])
         except Exception:
@@ -116,7 +125,9 @@ class Agent:
                 kind, line = "profile", line.split(":", 1)[1].strip()
             elif line.lower().startswith("memory:"):
                 kind, line = "memory", line.split(":", 1)[1].strip()
-            if len(line) > 4 and not line.upper().startswith("NONE"):
+            meta = ("perseus", "skill disimpan", "context", "jumlah skill", "hemat konteks")
+            if len(line) > 4 and not line.upper().startswith("NONE") and not any(
+                    m in line.lower() for m in meta):
                 memory.save(line, kind)
                 print(f"\033[2m[learn:{kind}] {line[:160]}\033[0m")
                 n += 1

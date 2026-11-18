@@ -100,6 +100,22 @@ def consolidate(kind: str | None = None) -> int:
     return removed
 
 
+def delete(mid: int) -> bool:
+    c = _conn()
+    row = c.execute("SELECT id FROM notes WHERE id=?", (mid,)).fetchone()
+    if not row:
+        c.close()
+        return False
+    c.execute("DELETE FROM notes WHERE id=?", (mid,))
+    try:
+        c.execute("DELETE FROM notes_fts WHERE rowid=?", (mid,))
+    except sqlite3.OperationalError:
+        pass
+    c.commit()
+    c.close()
+    return True
+
+
 def recent(limit: int = 5, kind: str | None = None) -> list[tuple[int, str]]:
     c = _conn()
     if kind:

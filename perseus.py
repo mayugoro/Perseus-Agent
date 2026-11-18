@@ -23,6 +23,7 @@ SLASH = [
     ("/help", "bantuan"), ("/tools", "daftar tool"), ("/new", "reset percakapan"),
     ("/mode", "ask | auto | read-only"), ("/model", "daftar / pilih model"),
     ("/reasoning", "default | low | medium | high"), ("/think", "toggle blok thinking"),
+    ("/memory", "lihat memori & profil"), ("/forget", "hapus memori by id"),
     ("/curator", "auto-skill setelah tugas kompleks"), ("/yolo", "matikan konfirmasi tool berisiko"), ("/learn", "toggle auto-learn ke memory"), ("/queue", "antrean tugas"),
     ("/agents", "subagent paralel"), ("/steps", "batas langkah tool"),
     ("/usage", "token & durasi sesi"), ("/sessions", "daftar / cari sesi"), ("/resume", "lanjutkan sesi"),
@@ -611,6 +612,24 @@ def main() -> int:
                 show_history(msgs)
                 continue
             sessions_table(sess.list_sessions())
+            continue
+        if line == "/memory" or line.startswith("/memory "):
+            import core.memory as mem
+            c = mem._conn()
+            data = c.execute("SELECT id,kind,text FROM notes ORDER BY id DESC LIMIT 20").fetchall()
+            c.close()
+            for mid, kind, text in data:
+                print(f"#{mid} [{kind}] {text[:140]}")
+            print("\nHapus: /forget <id>")
+            continue
+        if line.startswith("/forget"):
+            arg = line.split(None, 1)[1].strip() if " " in line else ""
+            import core.memory as mem
+            try:
+                ok = mem.delete(int(arg))
+                print("dihapus" if ok else "id tidak ada")
+            except ValueError:
+                print("format: /forget <id>")
             continue
         if line == "/curator" or line.startswith("/curator "):
             arg = line.split(None, 1)[1].strip().lower() if " " in line else ""

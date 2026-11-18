@@ -144,6 +144,9 @@ pertama kali DB dibuka, lalu tidak ditulis lagi.
 - **Profil user** dan **memori kerja** dipisah (`kind=profile` / `memory`).
   Profil diinjeksi sebagai blok sendiri di system prompt.
 - **Konsolidasi**: fakta mirip (Jaccard >= 0.75) digabung otomatis saat disimpan.
+- **Auto-learn selektif**: hanya fakta user/konvensi; pujian, basa-basi, dan fakta
+  meta tentang Perseus (jumlah skill, context, cara kerja internal) tidak disimpan.
+- `/memory` melihat profil + memori; `/forget <id>` menghapus entri.
 - **Session search otomatis**: potongan sesi lama yang relevan dicari lewat FTS
   dan dimasukkan ke prompt sebagai “Konteks sesi lama”.
 - **Curator**: setelah tugas yang memakai >= `curator_min_tools` (default 4) tool,
