@@ -88,8 +88,8 @@ def _clip(s: str, w: int) -> str:
 TOOLS_SHORT = [
     "Shell", "File · read/write/patch/search", "HTTP fetch", "Python exec",
     "Memory + FTS5", "Android: list/apps/info", "Android: install/uninstall/launch",
-    "Android: logcat & log", "Subagent paralel", "Kurator skill otomatis",
-    "Sesi SQLite + resume", "Queue tugas",
+    "Android: logcat & log", "Parallel subagents", "Auto skill curator",
+    "SQLite sessions + resume", "Task queue",
 ]
 
 
@@ -170,8 +170,8 @@ def cmd_usage(agent: Agent, cfg: dict) -> None:
     print(f"provider  : {cfg.get('base_url')}")
     if st:
         print(f"session   : {st['id']} ({st['title'] or '-'})")
-        print(f"turns     : {st['turns']} · pesan: {st['total']}")
-    print(f"context   : ~{tok} token / {limit} ({min(100, tok*100//max(1,limit))}%)")
+        print(f"turns     : {st['turns']} · messages: {st['total']}")
+    print(f"context   : ~{tok} tokens / {limit} ({min(100, tok*100//max(1,limit))}%)")
     print(f"durasi    : {dur}s · respons terakhir {agent.last_elapsed:.1f}s")
     print(f"reasoning : {cfg.get('reasoning_effort') or 'default'} · steps: "
           f"{'unlimited' if agent.max_steps <= 0 else agent.max_steps}")
@@ -261,15 +261,15 @@ def divider() -> None:
 
 def sessions_table(rows: list) -> None:
     if not rows:
-        print("(belum ada sesi)")
+        print("(no sessions yet)")
         return
     tw = min(24, max(8, max(len(r["title"] or "(tanpa judul)") for r in rows)))
-    print(f"{'#':>2} | {'title':<{tw}} | {'terakhir':<9} | obrolan pertama")
+    print(f"{'#':>2} | {'title':<{tw}} | {'last':<9} | first message")
     for i, r in enumerate(rows, 1):
         title = (r["title"] or "(tanpa judul)")[:tw]
         prev = (r["preview"] or "").replace("\n", " ")[:40]
         print(f"{i:>2} | {title:<{tw}} | {sess.rel_time(r['updated']):<9} | {prev}")
-    print("\nBuka: perseus sessions <id|title> · Cari: perseus sessions search <kata>")
+    print("\nOpen: perseus sessions <id|title> · Search: perseus sessions search <word>")
 
 
 def show_history(msgs: list, limit: int = 6) -> None:
@@ -282,7 +282,7 @@ def show_history(msgs: list, limit: int = 6) -> None:
         if len(text) > 300:
             text = text[:300] + "…"
         if m.get("role") == "user":
-            print(f"  kamu   : {text}")
+            print(f"  you    : {text}")
         else:
             print(f"\033[36m  perseus: {text}\033[0m")
     divider()
@@ -319,7 +319,7 @@ def wizard(cfg: dict) -> dict:
         try:
             models = LLM(cfg["base_url"], cfgmod.api_key(cfg), "").list_models()
         except Exception as e:
-            print(f"(gagal ambil daftar model: {e})")
+            print(f"(failed to fetch model list: {e})")
 
     if models:
         for i, mid in enumerate(models[:40], 1):
@@ -327,7 +327,7 @@ def wizard(cfg: dict) -> dict:
             print(f"{mark}{i}. {mid}")
         if len(models) > 40:
             print(f"   … {len(models)-40} model lain")
-        choice = input("Pilih nomor model [Enter=pertahankan]: ").strip()
+        choice = input("Pick a model number [Enter=keep]: ").strip()
         if choice.isdigit() and 1 <= int(choice) <= len(models):
             cfg["model"] = models[int(choice) - 1]
         elif choice and not choice.startswith("/"):
@@ -344,15 +344,15 @@ def wizard(cfg: dict) -> dict:
     except Exception:
         pass
 
-    r = input(f"Reasoning [default/low/medium/high, sekarang {cfg.get('reasoning_effort') or 'default'}]: ").strip().lower()
+    r = input(f"Reasoning [default/low/medium/high, currently {cfg.get('reasoning_effort') or 'default'}]: ").strip().lower()
     if r in ("default", "low", "medium", "high"):
         cfg["reasoning_effort"] = "" if r == "default" else r
 
-    mode = input(f"Mode izin [ask/auto/read-only, sekarang {cfg.get('permission','ask')}]: ").strip()
+    mode = input(f"Permission mode [ask/auto/read-only, currently {cfg.get('permission','ask')}]: ").strip()
     if mode in ("ask", "auto", "read-only"):
         cfg["permission"] = mode
     cfgmod.save(cfg)
-    print(f"\nTersimpan. Model={cfg.get('model')} · mode={cfg.get('permission')}\n")
+    print(f"\nSaved. Model={cfg.get('model')} · mode={cfg.get('permission')}\n")
     return cfg
 
 
@@ -362,14 +362,14 @@ def ready(cfg: dict) -> bool:
 
 def make_confirm():
     def confirm(name: str, args: dict) -> bool:
-        print(f"\n{C['y']}⚠ tool berisiko: {name}{C['0']}")
+        print(f"\n{C['y']}⚠ risky tool: {name}{C['0']}")
         for k, v in args.items():
             s = str(v)
             if k in ("content", "new", "old") and len(s) > 300:
                 s = s[:300] + f"… ({len(s)} chars)"
             print(f"   {k}: {s}")
         try:
-            ans = input("Lanjutkan? [y/N] ").strip().lower()
+            ans = input("Continue? [y/N] ").strip().lower()
         except EOFError:
             return False
         return ans in ("y", "ya", "yes")
@@ -378,7 +378,7 @@ def make_confirm():
 
 def main() -> int:
     ap = argparse.ArgumentParser(prog="perseus")
-    ap.add_argument("-p", "--prompt", help="jalankan satu perintah lalu keluar")
+    ap.add_argument("-p", "--prompt", help="run one command then exit")
     ap.add_argument("--mode", choices=["ask", "auto", "read-only"])
     ap.add_argument("--model")
     ap.add_argument("--workspace")
@@ -386,7 +386,7 @@ def main() -> int:
                     help="model | setup | sessions | resume")
     ap.add_argument("rest", nargs="*", help="argumen untuk command")
     ap.add_argument("-c", "-resume", "--resume", dest="resume", metavar="SESI",
-                    help="lanjutkan sesi (id atau awalan id)")
+                    help="resume session (id or id prefix)")
     ap.add_argument("--init", action="store_true", help="buat config default")
     ap.add_argument("--show-config", action="store_true")
     a = ap.parse_args()
@@ -404,7 +404,7 @@ def main() -> int:
 
         if sub == "search":
             if not q:
-                print("format: perseus sessions search <kata>")
+                print("format: perseus sessions search <word>")
                 return 2
             rows = sess.search(q)
             if not rows:
@@ -444,7 +444,7 @@ def main() -> int:
         wizard(cfg)
         return 0
     elif not ready(cfg) and not a.prompt and not a.show_config:
-        print("Provider belum diset. Jalankan setup dulu.\n")
+        print("Provider not set. Run setup first.\n")
         cfg = wizard(cfg)
 
     if a.show_config:
@@ -456,7 +456,7 @@ def main() -> int:
             return 0
 
     if not ready(cfg):
-        print(f"{C['r']}Provider belum lengkap.{C['0']} Jalankan: python3 perseus.py --init")
+        print(f"{C['r']}Provider incomplete.{C['0']} Run: python3 perseus.py --init")
         return 2
 
     agent = Agent(cfg, confirm=make_confirm())
@@ -471,7 +471,7 @@ def main() -> int:
         st = sess.stats(sid)
         agent.session_id = sid
         agent.messages = msgs
-        print(f"resume sesi {sid} · {st['turns']} turn · {st['total']} pesan · "
+        print(f"resumed session {sid} · {st['turns']} turn · {st['total']} messages · "
               f"{sess.fmt_time(st['updated'])}")
         show_history(msgs)
         resumed = True
@@ -513,8 +513,8 @@ def main() -> int:
             if st:
                 print(f"\nsession : {st['id']}")
                 print(f"title   : {st['title'] or '-'}")
-                print(f"waktu   : {sess.fmt_time(st['created'])} → {sess.fmt_time(st['updated'])}")
-                print(f"isi     : {st['turns']} turn · {st['total']} pesan · model {st['model'] or '-'}")
+                print(f"time    : {sess.fmt_time(st['created'])} → {sess.fmt_time(st['updated'])}")
+                print(f"isi     : {st['turns']} turn · {st['total']} messages · model {st['model'] or '-'}")
                 print(f"db      : {sess.DB}")
                 print(f"resume  : perseus -c {st['id']}")
             break
@@ -548,8 +548,8 @@ def main() -> int:
             print()
             continue
         if line == "/help":
-            print("/tools  daftar tool\n/new    reset percakapan\n/mode ask|auto|read-only"
-                  "\n/model [id]  ganti/daftar model\n/think  tampilkan/sembunyikan reasoning\n/queue [tugas|run|rm N|clear]  antrean tugas\n/agents [on|off|max N]  subagent paralel\n/exit   keluar")
+            print("/tools  list tools\n/new    reset conversation\n/mode ask|auto|read-only"
+                  "\n/model [id]  change/list model\n/think  show/hide reasoning\n/queue [task|run|rm N|clear]  task queue\n/agents [on|off|max N]  parallel subagents\n/exit   exit")
             continue
         if line == "/tools":
             show_tools(agent)
@@ -578,7 +578,7 @@ def main() -> int:
                 try:
                     models = agent.llm.list_models()
                 except Exception as e:
-                    print(f"(gagal ambil daftar model: {e})")
+                    print(f"(failed to fetch model list: {e})")
                     models = []
                 if models:
                     for i, mid in enumerate(models[:40], 1):
@@ -586,7 +586,7 @@ def main() -> int:
                         print(f"{mark}{i}. {mid}")
                     if len(models) > 40:
                         print(f"   … {len(models)-40} model lain")
-                choice = input("Pilih nomor / ketik model id [Enter=batal]: ").strip()
+                choice = input("Pick a number / type a model id [Enter=cancel]: ").strip()
                 if not choice or choice.startswith("/"):
                     print("(batal)")
                     continue
@@ -597,7 +597,7 @@ def main() -> int:
             else:
                 m = line.split(None, 1)[1].strip()
             if line == "/model" and m:
-                r = input("Reasoning [default/low/medium/high] (Enter=pertahankan): ").strip().lower()
+                r = input("Reasoning [default/low/medium/high] (Enter=keep): ").strip().lower()
                 if r in ("default", "low", "medium", "high"):
                     v = "" if r == "default" else r
                     agent.llm.reasoning_effort = v
@@ -637,7 +637,7 @@ def main() -> int:
                     cfgmod.save(cfg)
                     print(f"max_steps={'unlimited' if v == 0 else v}")
                 except ValueError:
-                    print("format: /steps N (1-40)")
+                    print("format: /steps N (1-500)")
             else:
                 print(f"max_steps={'unlimited' if agent.max_steps <= 0 else agent.max_steps}")
             continue
@@ -669,7 +669,7 @@ def main() -> int:
                 if arg.isdigit():
                     rows = sess.list_sessions()
                     if not (1 <= int(arg) <= len(rows)):
-                        print("nomor tidak ada (lihat /sessions)")
+                        print("number not found (lihat /sessions)")
                         continue
                     sid = rows[int(arg) - 1]["id"]
                 else:
@@ -704,7 +704,7 @@ def main() -> int:
             import core.memory as mem
             try:
                 ok = mem.delete(int(arg))
-                print("dihapus" if ok else "id tidak ada")
+                print("deleted" if ok else "id not found")
             except ValueError:
                 print("format: /forget <id>")
             continue
@@ -723,11 +723,11 @@ def main() -> int:
                 cfg["_prev_permission"] = agent.permission if agent.permission != "auto" else "ask"
                 cfg["yolo"] = True
                 agent.permission = "auto"
-                print("YOLO on — tool berisiko jalan tanpa konfirmasi. /yolo off untuk kembali.")
+                print("YOLO on — risky tools run without confirmation. /yolo off to restore.")
             else:
                 cfg["yolo"] = False
                 agent.permission = cfg.pop("_prev_permission", "ask")
-                print(f"YOLO off — mode izin kembali ke {agent.permission}")
+                print(f"YOLO off — permission mode restored to {agent.permission}")
             cfgmod.save(cfg)
             continue
         if line == "/learn":
@@ -777,37 +777,37 @@ def main() -> int:
             if not rest:
                 qs = qmod.items()
                 if not qs:
-                    print("(antrean kosong)")
+                    print("(queue empty)")
                 else:
                     for i, q in enumerate(qs, 1):
                         print(f"{i}. [{q.get('created','')}] {q['text'][:160]}")
-                    print("\n/queue run  jalankan semua · /queue rm N · /queue clear")
+                    print("\n/queue run  run all · /queue rm N · /queue clear")
             elif rest == "run":
                 qs = qmod.items()
                 if not qs:
-                    print("(antrean kosong)")
+                    print("(queue empty)")
                 else:
                     for i, q in enumerate(qs, 1):
                         print(f"\n{C['c']}[queue {i}/{len(qs)}]{C['0']} {q['text']}")
                         try:
                             run_show(agent, q["text"])
                         except KeyboardInterrupt:
-                            print("(dibatalkan, sisa antrean disimpan)")
+                            print("(cancelled, remaining queue kept)")
                             break
                         qmod.remove(1)
-                    print(f"\nantrean selesai, sisa {len(qmod.items())}")
+                    print(f"\nqueue done, remaining {len(qmod.items())}")
             elif rest == "clear":
                 n = qmod.clear()
-                print(f"{n} tugas dihapus")
+                print(f"{n} tugas deleted")
             elif rest.startswith("rm "):
                 try:
                     ok = qmod.remove(int(rest.split()[1]))
-                    print("dihapus" if ok else "nomor tidak ada")
+                    print("deleted" if ok else "number not found")
                 except (IndexError, ValueError):
                     print("format: /queue rm N")
             else:
                 n = qmod.add(rest)
-                print(f"ditambahkan ke antrean (#{n})")
+                print(f"added to queue (#{n})")
             continue
         try:
             divider()

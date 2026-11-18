@@ -1,14 +1,14 @@
 # Perseus Agent
 
-AI agent ringan untuk **Termux (Android)**. Semua reasoning lewat provider API
-(OpenAI-compatible) — tidak ada model lokal, GGUF, ONNX, atau inferensi CPU.
+A lightweight AI agent for **Termux (Android)**. All reasoning goes through a
+provider API (OpenAI-compatible) — no local model, GGUF, ONNX, or CPU inference.
 
-Dibuat oleh **Mayugoro** (github.com/mayugoro).
+Created by **Mayugoro** (github.com/mayugoro).
 
-Repo ini **kosong secara konfigurasi**: base URL, model, dan API key diisi sendiri
-saat setup pertama. Tidak ada provider yang di-hardcode.
+This repo ships **configuration-free**: base URL, model, and API key are set by
+you on first setup. No provider is hardcoded.
 
-## Instal
+## Install
 
 ```bash
 pkg install -y git
@@ -17,224 +17,219 @@ cd Perseus-Agent
 ./install.sh
 ```
 
-`install.sh` akan:
+`install.sh` will:
 
-1. memasang `python`, `git`, `expat`, dan dependency Python
-   (`prompt_toolkit`) dari `requirements.txt`
-2. menjalankan wizard: **Base URL** + **API key**; model diambil otomatis dari
-   `{base_url}/models` lalu dipilih dari daftar
-3. membuat launcher `perseus` di `$PREFIX/bin`
+1. install `python`, `git`, `expat`, and the Python dependency (`prompt_toolkit`)
+   from `requirements.txt`
+2. run the wizard: **Base URL** + **API key**; the model list is fetched from
+   `{base_url}/models` and you pick from it
+3. create the `perseus` launcher in `$PREFIX/bin`
 
-Setelah itu:
+Then:
 
 ```bash
 perseus
 ```
 
-## Setup manual
+## Manual setup
 
 ```bash
-python3 perseus.py --init      # wizard provider pertama kali
-python3 perseus.py model       # ubah provider / model / API key
+python3 perseus.py --init      # first-time provider wizard
+python3 perseus.py model       # change provider / model / API key
 python3 perseus.py             # REPL
-python3 perseus.py -p "halo"   # satu perintah
+python3 perseus.py -p "hello"  # one-shot command
 ```
 
-Kalau sudah di-install, cukup:
+If already installed:
 
 ```bash
 perseus model
 ```
 
-Konfigurasi disimpan di `~/.perseus/config.json` (0600). API key boleh disimpan
-di situ, atau dikosongkan dan pakai environment:
+Config is stored at `~/.perseus/config.json` (0600). The API key can be stored
+there, or left empty and provided via environment:
 
 ```bash
 export PERSEUS_API_KEY='...'
 ```
 
-## Tampilan
+## UI
 
-- Pesan Perseus dan garis pemisah antar-turn berwarna cyan/biru (sama dengan logo).
-- Blok `[think]` tetap abu-abu/dim.
-- Tool call ditandai `</tool>` biru.
-- Prompt `❯` dengan status bar: model, pemakaian context, durasi respons,
-  durasi sesi, dan hint `/ commands · @ files · ! shell`.
-- Batas context diambil otomatis dari `context_length` di `GET /models`
-  (mis. model 1 juta token tampil `1000k`), bukan angka hardcode.
-- Status bar tidak memaksa refresh tiap detik supaya scroll ke atas tidak
-  terlonjak kembali ke bawah; angka diperbarui saat ada input/turn baru.
-- `/usage` menampilkan token perkiraan, context, durasi, reasoning, steps.
-- `!perintah` menjalankan shell langsung; `@file` melampirkan isi file dari
-  workspace ke pesan.
+- Perseus responses and turn separators are cyan/blue (same as the logo).
+- The `[think]` block stays gray/dim.
+- Tool calls are shown as blue `</tool>`.
+- `❯` prompt with a status bar: model, context usage, response duration, session
+  duration, and hints `/ commands · @ files · ! shell`.
+- The context limit is auto-detected from `context_length` in `GET /models`
+  (e.g. a 1M-token model shows `1000k`), not a hardcoded number.
+- The status bar does not force a per-second refresh (which would yank the
+  scroll view back to the bottom); numbers update on new input/turn.
+- `/usage` shows estimated tokens, context, duration, reasoning, and steps.
+- `!command` runs a shell command directly; `@file` attaches a workspace file
+  to the message.
 
-## Perintah REPL
+## REPL commands
 
-Ketik `/` — daftar perintah muncul otomatis (completion `prompt_toolkit`,
-butuh TTY). Tab/arah untuk memilih, Enter untuk menjalankan.
+Type `/` — the command list appears automatically (`prompt_toolkit` completion,
+TTY required). Tab/arrows to choose, Enter to run.
 
 ```
-/help                      bantuan
-/tools                     daftar tool
-/new                       reset percakapan
-/mode ask|auto|read-only   mode izin
-/model [id]                lihat provider + pilih model + reasoning
-/queue [tugas|run|rm N|clear]  antrean tugas
-/yolo                      matikan konfirmasi tool berisiko (toggle)
+/help                      help
+/tools                     list tools
+/new                       reset conversation
+/mode ask|auto|read-only   permission mode
+/model [id]                show provider + pick model + reasoning
+/queue [task|run|rm N|clear]  task queue
+/yolo                      toggle dangerous-tool confirmation
 /reasoning [level]         default|low|medium|high
-/steps [N]                 batas langkah tool (0/default = unlimited)
-/sessions                  daftar sesi tersimpan
-/resume <N|id|title>       lanjutkan sesi
-/title [teks]              atur judul sesi
-/session                   info sesi aktif
-/learn                     auto-belajar on/off
-/agents [on|off|max N]     subagent paralel
+/think                     show/hide reasoning block
+/learn                     auto-learn on/off
+/curator                   auto-skill after complex tasks
+/agents [on|off|max N]     parallel subagents
+/steps [N]                 tool step limit (0/default = unlimited)
+/sessions                  list saved sessions
+/resume <N|id|title>       resume a session
+/title [text]              set session title
+/session                   active session info
+/memory                    show profile + working memory
+/forget <id>               delete a memory entry
 /exit
 ```
 
-`max_steps` default **0 = unlimited** (seperti agent utama Hermes). Loop tetap
-aman karena panggilan tool identik 3x otomatis dilewati. Set batas manual dengan
-`/steps 40` (0–500). Kalau batas tercapai, Perseus diminta memberi ringkasan
-progres, bukan berhenti dengan pesan kosong.
+`max_steps` defaults to **0 = unlimited**. Identical tool calls are skipped
+after 3 repeats to avoid loops. Set a manual bound with `/steps 40` (0–500).
+When the limit is hit, Perseus is asked to summarize progress instead of
+returning an empty message.
 
-`/model` tanpa argumen menampilkan provider, model aktif, dan daftar model dari
-endpoint `/v1/models`; pilih nomor atau ketik id sendiri. Setelah model dipilih,
-wizard menanyakan level reasoning (`default/low/medium/high`) yang dikirim sebagai
-`reasoning_effort` — hanya untuk model yang mendukung. Bisa juga langsung:
-`/reasoning high`.
+`/model` with no argument shows the provider, current model, and the model list
+from `/models`; pick a number or type an id. After choosing, the wizard asks for
+a reasoning level (`default/low/medium/high`) sent as `reasoning_effort` — only
+for models that support it. Or set it directly: `/reasoning high`.
 
-`/queue <tugas>` menambah tugas, `/queue` melihat daftar, `/queue run`
-menjalankannya berurutan (sesi sama), `/queue rm N` dan `/queue clear` mengelola.
-Antrean tersimpan di `~/.perseus/queue.json`, jadi tidak hilang saat CLI ditutup.
+`/queue <task>` adds a task, `/queue` lists, `/queue run` runs them in order,
+`/queue rm N` and `/queue clear` manage. The queue persists in
+`~/.perseus/queue.json`.
 
-## Sesi
+## Sessions
 
-Sesi disimpan di **SQLite + FTS5**: `~/.perseus/state.db`
-(tabel `sessions`, `messages`, `messages_fts`).
+Sessions are stored in **SQLite + FTS5**: `~/.perseus/state.db`
+(tables `sessions`, `messages`, `messages_fts`).
 
-- `/sessions` — tabel: nomor | title | terakhir dipakai | obrolan pertama
-- `/sessions <kata>` — cari isi percakapan lewat FTS5
-- `/resume N` / `/resume <id>` / `/resume <title>` — muat konteks sesi dan
-  tampilkan 6 pesan terakhir (kamu/perseus)
-- `/title <teks>` — atur judul sesi (tampil di `/sessions` dan `/exit`)
-- `/session` — ID sesi aktif
-- Saat `/exit`, Perseus menampilkan ringkasan sesi + perintah resume
+- `/sessions` — table: number | title | last used | first message
+- `/sessions <word>` — search conversation content via FTS5
+- `/resume N` / `/resume <id>` / `/resume <title>` — load session context and
+  show the last 6 messages
+- `/title <text>` — set the session title (shown in `/sessions` and `/exit`)
+- `/session` — active session ID
+- On `/exit`, Perseus prints a session summary + resume command
 
-Resume dari shell:
+Resume from the shell:
 
 ```bash
-perseus -c 20261118-204418-715     # id penuh
-perseus -c "ngobrol kopi"          # title sesi
-# saat resume, 6 pesan terakhir ikut ditampilkan
-perseus -c 20261118               # awalan id (yang terbaru cocok)
+perseus -c 20261118-204418-715     # full id
+perseus -c "coffee chat"           # session title
+# on resume, the last 6 messages are shown
+perseus -c 20261118               # id prefix (latest match)
 perseus -resume 20261118-204418-715
-perseus -c <id> -p "lanjutkan tugas tadi"
+perseus -c <id> -p "continue the task"
 
-perseus sessions list              # daftar sesi
-perseus sessions search <kata>     # cari isi percakapan
-perseus sessions <id|title>        # buka sesi (detail + 6 pesan terakhir)
-perseus resume <id|title>          # langsung lanjut sesi
+perseus sessions list              # list sessions
+perseus sessions search <word>     # search conversation content
+perseus sessions <id|title>        # open a session (detail + last 6 messages)
+perseus resume <id|title>          # jump straight into a session
 ```
 
-File JSONL lama di `~/.perseus/sessions/` dimigrasikan otomatis sekali saat
-pertama kali DB dibuka, lalu tidak ditulis lagi.
+Legacy JSONL files in `~/.perseus/sessions/` are migrated automatically once
+the DB is first opened, then no longer written.
 
-## Rantai belajar
+## Learning loop
 
-- **Profil user** dan **memori kerja** dipisah (`kind=profile` / `memory`).
-  Profil diinjeksi sebagai blok sendiri di system prompt.
-- **Konsolidasi**: fakta mirip (Jaccard >= 0.75) digabung otomatis saat disimpan.
-- **Auto-learn selektif**: hanya fakta user/konvensi; pujian, basa-basi, dan fakta
-  meta tentang Perseus (jumlah skill, context, cara kerja internal) tidak disimpan.
-- `/memory` melihat profil + memori; `/forget <id>` menghapus entri.
-- **Session search otomatis**: potongan sesi lama yang relevan dicari lewat FTS
-  dan dimasukkan ke prompt sebagai “Konteks sesi lama”.
-- **Curator**: setelah tugas yang memakai >= `curator_min_tools` (default 4) tool,
-  Perseus meminta model merangkum prosedur jadi skill markdown dan menyimpannya
-  ke `~/.perseus/skills/` (nama `auto` mengikuti usulan model). Toggle `/curator`.
-- **Subagent live**: setiap subagent diberi tag `[A1]`, `[A2]`, ... dan progres
-  tool-nya terlihat saat berjalan.
+- **User profile** and **working memory** are separated (`kind=profile` /
+  `memory`); the profile is injected as its own block in the system prompt.
+- **Consolidation**: near-duplicate facts (Jaccard >= 0.75) are merged on save.
+- **Selective auto-learn**: only user facts/conventions; praise, small talk, and
+  meta facts about Perseus (skill count, context, internals) are discarded.
+- `/memory` shows profile + working memory; `/forget <id>` deletes an entry.
+- **Automatic session search**: relevant old-session snippets are found via FTS
+  and injected as "past session context".
+- **Curator**: after a task using >= `curator_min_tools` (default 4) tools,
+  Perseus asks the model to summarize the procedure into a markdown skill saved
+  to `~/.perseus/skills/`. Toggle with `/curator`.
+- **Live subagents**: each subagent gets a tag `[A1]`, `[A2]`, … so its tool
+  progress is visible while running.
 
 ## YOLO
 
-`/yolo` (atau `/yolo on|off`) mematikan konfirmasi untuk tool berisiko —
-setara auto-approve di Hermes. Mode izin sebelumnya disimpan dan dikembalikan
-saat `/yolo off`. Status `YOLO` tampil di banner dan status bar.
+`/yolo` (or `/yolo on|off`) disables confirmation for dangerous tools —
+equivalent to auto-approve in Hermes. The previous permission mode is restored
+on `/yolo off`. `YOLO` status shows in the banner and status bar.
 
-## Belajar & berpikir
+## Thinking & responding
 
-- Respons di-stream (SSE): teks muncul token demi token, tidak menunggu selesai.
-- Saat menunggu token pertama, muncul spinner `⠋ thinking…` (hanya di TTY).
-- Blok `[think]` tampil saat reasoning benar-benar “berpikir” (panjang >=
-  `min_think_chars` 200, atau >= 2 baris). Arahan singkat seperti “respond
-  briefly” tidak ditampilkan. `/think` mematikan/menyalakan seluruh blok.
-- Spinner berjalan dihapus — baris `❯` tidak bergeser saat menunggu respons.
-- Perseus tidak menolak permintaan/user atau memberi disclaimer moral; ia
-  mengerjakan apa yang diminta selama ada tool, atau menjelaskan alasan teknis
-  bila tidak bisa (bukan menolak).
-- `auto_learn` (default on): setelah jawaban selesai, satu panggilan ringan
-  mengekstrak maksimal 2 fakta tahan lama → disimpan ke SQLite. Fakta ini
-  diinjeksi ke system prompt sesi berikutnya. Matikan dengan `/learn`.
-- `skill_save` menyimpan prosedur ke `~/.perseus/skills/`; daftar skill otomatis
-  muncul di system prompt dan dimuat penuh lewat `skill_view`.
-- Batas context mengikuti model: dibaca dari `GET /models` saat start dan setiap
-  `/model`, jadi ganti model = batas baru otomatis.
-- Kompresi otomatis berbasis token: saat perkiraan token melewati
-  `compress_at` (default 70% dari context model), pesan lama diringkas dan hanya
-  12 pesan terakhir dipertahankan. Ambang pesan (`context_messages`, 36) tetap
-  dipakai sebagai pengaman.
+- Responses stream (SSE): text appears token by token.
+- While waiting, a spinner `⠋ thinking…` shows (TTY only).
+- The `[think]` block appears only for real reasoning (length >=
+  `min_think_chars` 200, or >= 2 lines); short directives like "respond briefly"
+  are hidden. `/think` toggles the whole block.
+- Perseus does not refuse requests or add moral/security disclaimers; it does
+  what is asked if a tool exists, otherwise explains the technical reason.
+- `auto_learn` (default on): after an answer, one lightweight call extracts up
+  to 2 durable facts → stored in SQLite, injected into the next session.
+- `skill_save` writes a procedure to `~/.perseus/skills/`; the skill list is
+  indexed in the system prompt and loaded in full via `skill_view`.
+- Context limit follows the model: read from `GET /models` at start and on every
+  `/model`, so switching models updates the limit automatically.
+- Token-based compression: when estimated tokens exceed `compress_at` (default
+  70% of the model context), old messages are summarized and only the last 12
+  kept. `context_messages` (36) is a belt-and-suspenders guard.
 
-## Subagent paralel
+## Parallel subagents
 
-Model dapat memanggil tool `delegate_task` untuk menjalankan beberapa subagent
-sekaligus. Tiap subagent punya konteks/percakapan sendiri, model yang sama, dan
-sesi terpisah — jadi bisa "berpikir sendiri" lalu hasilnya digabung.
+The model can call `delegate_task` to run multiple subagents at once. Each
+subagent has its own context, same model, and separate session — so it can
+"think on its own" and results are merged.
 
-Konfigurasi di `~/.perseus/config.json`:
+Config in `~/.perseus/config.json`:
 
 ```json
 "subagents": {"enabled": true, "max_parallel": 3, "permission": "auto"}
 ```
 
-Atau lewat REPL: `/agents`, `/agents on|off`, `/agents max N`,
-`/agents permission auto|read-only`. Batas aman 1–8 subagent; subagent tidak
-boleh mendelegasikan lagi (anti-rekursif).
+Or via REPL: `/agents`, `/agents on|off`, `/agents max N`,
+`/agents permission auto|read-only`. Safe range 1–8; subagents cannot delegate
+again (anti-recursion).
 
-## Tool
+## Tools
 
 - **File**: `read_file`, `write_file`, `patch_file`, `list_dir`, `search_files`
-- **Sistem**: `shell`, `python_exec`, `http_fetch`
-- **Memori**: `memory_save`, `memory_search` (SQLite + FTS5)
+- **System**: `shell`, `python_exec`, `http_fetch`
+- **Memory**: `memory_save`, `memory_search` (SQLite + FTS5)
 - **Android**: `android_list_apps`, `android_app_info`, `android_install`,
   `android_uninstall`, `android_launch`, `android_logcat`
-- **Skill**: `skill_list`, `skill_view` (folder `skills/*.md`)
-  - `android-apps`, `android-logs`, `android-files`, `android-build`, `termux-device`
-  - `android-root`, `android-magisk`, `android-lsposed`, `android-frida`,
-    `android-network`, `android-system`, `android-backup`, `termux-services`
-  - `android-dump`, `frida-variants`, `android-re-sdk`, `android-re-runtime`
+- **Skills**: `skill_list`, `skill_view`, `skill_save` (folder `skills/*.md`)
 
-## Keamanan
+## Security
 
-- Workspace jail: default `~/perseus-workspace`, path di luar itu ditolak
-- Mode `ask`: tool berisiko (tulis/hapus/install/uninstall) minta konfirmasi
-- Backup otomatis file yang ditimpa ke `.perseus/backups/`
-- Audit trail: `~/.perseus/sessions/*.jsonl`
+- Workspace jail: default `~/perseus-workspace`; paths outside are rejected
+- `ask` mode: dangerous tools (write/delete/install/uninstall) require confirmation
+- Automatic backup of overwritten files to `.perseus/backups/`
+- Audit trail: sessions in `~/.perseus/state.db`
 
-## Error provider
+## Provider errors
 
-Kalau upstream gagal (network, timeout, 429, 5xx), Perseus mencoba ulang
-**3x dengan jeda 15 detik** (`retries`, `retry_delay` di config). Error
-400/401/403/404 tidak di-retry karena itu kesalahan konfigurasi/model.
-Setelah semua percobaan gagal, balasan error ditampilkan tetapi **sesi tetap
-hidup** — prompt kembali dan percakapan bisa dilanjutkan.
+If the upstream fails (network, timeout, 429, 5xx), Perseus retries **3× with a
+15 s delay** (`retries`, `retry_delay` in config). 400/401/403/404 are not
+retried (config/model errors). After all attempts fail, the error is shown but
+the **session stays alive** — the prompt returns and you can continue.
 
-## Batasan
+## Limitations
 
-- Butuh koneksi ke provider; tidak ada mode offline
-- `pm install` dapat ditolak PackageManager tertentu → fallback installer UI / SAI
-- Tanpa root, install/uninstall mengikuti izin shell Android
-- Proses dapat dibunuh Doze; gunakan `termux-wake-lock` bila perlu
+- Requires connectivity; no offline mode
+- `pm install` may be rejected by some PackageManagers → fall back to UI
+  installer / SAI
+- Without root, install/uninstall follows Android shell permissions
+- Processes can be killed by Doze; use `termux-wake-lock` when needed
 
-## Lisensi
+## License
 
 MIT

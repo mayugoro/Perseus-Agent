@@ -63,11 +63,11 @@ class Registry:
     def call(self, name: str, args: dict) -> str:
         t = self.tools.get(name)
         if not t:
-            return f"ERROR: tool '{name}' tidak ada"
+            return f"ERROR: tool '{name}' does not exist"
         try:
             return t.func(**args)
         except TypeError as e:
-            return f"ERROR argumen: {e}"
+            return f"ERROR argument: {e}"
         except Exception as e:
             return f"ERROR: {type(e).__name__}: {e}"
 
@@ -77,7 +77,7 @@ class Registry:
             path = self.workspace / path
         path = path.resolve()
         if self.workspace not in path.parents and path != self.workspace:
-            raise PermissionError(f"di luar workspace: {path}")
+            raise PermissionError(f"outside the workspace: {path}")
         return path
 
     def backup(self, path: Path) -> None:
@@ -90,87 +90,87 @@ class Registry:
 
     # ---------------------------------------------------------------- daftar
     def _register(self):
-        self.add("shell", "Jalankan perintah shell di workspace. Kembalikan stdout+stderr.",
+        self.add("shell", "Run a shell command in the workspace. Returns stdout+stderr.",
                  {"type": "object", "properties": {
                      "command": {"type": "string"},
                      "timeout": {"type": "integer", "description": "detik, default 180"}},
                   "required": ["command"]}, self.t_shell)
 
-        self.add("read_file", "Baca file teks (maks 200 KB).",
+        self.add("read_file", "Read a text file (max 200 KB).",
                  {"type": "object", "properties": {"path": {"type": "string"}},
                   "required": ["path"]}, self.t_read)
 
-        self.add("write_file", "Tulis/overwrite file. Backup otomatis file lama.",
+        self.add("write_file", "Write/overwrite a file. Backs up the old file automatically.",
                  {"type": "object", "properties": {
                      "path": {"type": "string"}, "content": {"type": "string"}},
                   "required": ["path", "content"]}, self.t_write, danger=True)
 
-        self.add("patch_file", "Ganti satu potongan teks di file (old -> new).",
+        self.add("patch_file", "Replace one text fragment in a file (old -> new).",
                  {"type": "object", "properties": {
                      "path": {"type": "string"}, "old": {"type": "string"},
                      "new": {"type": "string"}, "replace_all": {"type": "boolean"}},
                   "required": ["path", "old", "new"]}, self.t_patch, danger=True)
 
-        self.add("list_dir", "Daftar isi direktori.",
+        self.add("list_dir", "List a directory.",
                  {"type": "object", "properties": {"path": {"type": "string"}},
                   "required": []}, self.t_ls)
 
-        self.add("search_files", "Cari teks di file (regex sederhana).",
+        self.add("search_files", "Search text in files (simple regex).",
                  {"type": "object", "properties": {
                      "pattern": {"type": "string"}, "path": {"type": "string"},
                      "glob": {"type": "string"}},
                   "required": ["pattern"]}, self.t_search)
 
-        self.add("http_fetch", "Ambil isi URL (GET, teks/JSON).",
+        self.add("http_fetch", "Fetch URL content (GET, text/JSON).",
                  {"type": "object", "properties": {
                      "url": {"type": "string"}, "max_chars": {"type": "integer"}},
                   "required": ["url"]}, self.t_http)
 
-        self.add("python_exec", "Jalankan kode Python di workspace.",
+        self.add("python_exec", "Run Python code in the workspace.",
                  {"type": "object", "properties": {
                      "code": {"type": "string"}, "timeout": {"type": "integer"}},
                   "required": ["code"]}, self.t_py)
 
-        self.add("memory_save", "Simpan catatan permanen (kind: profile untuk fakta user).",
+        self.add("memory_save", "Save a permanent note (kind: profile for user facts).",
                  {"type": "object", "properties": {
                      "text": {"type": "string"},
                      "kind": {"type": "string", "enum": ["profile", "memory"]}},
                   "required": ["text"]}, self.t_mem_save)
 
-        self.add("memory_search", "Cari catatan permanen.",
+        self.add("memory_search", "Search permanent notes.",
                  {"type": "object", "properties": {
                      "query": {"type": "string"}, "limit": {"type": "integer"}},
                   "required": ["query"]}, self.t_mem_search)
 
-        self.add("android_list_apps", "Daftar aplikasi terpasang (third-party).",
+        self.add("android_list_apps", "List installed apps (third-party).",
                  {"type": "object", "properties": {"all": {"type": "boolean"}},
                   "required": []}, self.t_apps)
 
-        self.add("android_app_info", "Detail paket: versi, signature, komponen.",
+        self.add("android_app_info", "Package details: version, signature, components.",
                  {"type": "object", "properties": {"package": {"type": "string"}},
                   "required": ["package"]}, self.t_app_info)
 
-        self.add("android_install", "Install APK. Coba pm install; jika gagal, sarankan installer UI.",
+        self.add("android_install", "Install an APK. Try pm install; on failure suggest the UI installer.",
                  {"type": "object", "properties": {"path": {"type": "string"}},
                   "required": ["path"]}, self.t_install, danger=True)
 
-        self.add("android_uninstall", "Uninstall aplikasi.",
+        self.add("android_uninstall", "Uninstall an app.",
                  {"type": "object", "properties": {"package": {"type": "string"}},
                   "required": ["package"]}, self.t_uninstall, danger=True)
 
-        self.add("android_launch", "Buka aplikasi berdasarkan package.",
+        self.add("android_launch", "Launch an app by package.",
                  {"type": "object", "properties": {"package": {"type": "string"}},
                   "required": ["package"]}, self.t_launch)
 
-        self.add("android_logcat", "Ambil logcat terakhir (opsional filter teks).",
+        self.add("android_logcat", "Fetch recent logcat (optional text filter).",
                  {"type": "object", "properties": {
                      "filter": {"type": "string"}, "lines": {"type": "integer"}},
                   "required": []}, self.t_logcat)
 
         if self.allow_delegate and (self.cfg.get("subagents") or {}).get("enabled", True):
             self.add("delegate_task",
-                     "Jalankan beberapa subagent paralel, masing-masing punya konteks sendiri. "
-                     "Kirim daftar tugas; hasilnya ringkasan per tugas.",
+                     "Run several subagents in parallel, each with its own context. "
+                     "Send a task list; results are a summary per task.",
                      {"type": "object", "properties": {
                          "tasks": {"type": "array", "items": {"type": "object", "properties": {
                              "goal": {"type": "string"},
@@ -179,14 +179,14 @@ class Registry:
                          "max_parallel": {"type": "integer"}},
                       "required": ["tasks"]}, self.t_delegate)
 
-        self.add("skill_list", "Daftar skill markdown di folder skills/.",
+        self.add("skill_list", "List markdown skills in the skills/ folder.",
                  {"type": "object", "properties": {}, "required": []}, self.t_skill_list)
 
-        self.add("skill_view", "Baca isi skill markdown.",
+        self.add("skill_view", "Read a markdown skill.",
                  {"type": "object", "properties": {"name": {"type": "string"}},
                   "required": ["name"]}, self.t_skill_view)
 
-        self.add("skill_save", "Simpan/perbarui skill markdown agar dipakai di sesi berikutnya.",
+        self.add("skill_save", "Save/update a markdown skill for reuse in later sessions.",
                  {"type": "object", "properties": {
                      "name": {"type": "string"}, "content": {"type": "string"}},
                   "required": ["name", "content"]}, self.t_skill_save, danger=True)
@@ -228,7 +228,7 @@ class Registry:
         rows = []
         for x in sorted(p.iterdir(), key=lambda z: z.name.lower()):
             rows.append(f"{'d' if x.is_dir() else '-'} {x.stat().st_size:>9} {x.name}")
-        return "\n".join(rows) or "(kosong)"
+        return "\n".join(rows) or "(empty)"
 
     def t_search(self, pattern: str, path: str = ".", glob: str = "*") -> str:
         p = self.resolve(path)
@@ -245,7 +245,7 @@ class Registry:
                             return "\n".join(hits)
             except Exception:
                 continue
-        return "\n".join(hits) or "(tidak ada)"
+        return "\n".join(hits) or "(none)"
 
     def t_http(self, url: str, max_chars: int = 12000) -> str:
         req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 Perseus"})
@@ -266,7 +266,7 @@ class Registry:
 
     def t_mem_search(self, query: str, limit: int = 5) -> str:
         rows = memory.search(query, int(limit))
-        return "\n".join(f"#{r[0]} {r[1]}" for r in rows) or "(tidak ada)"
+        return "\n".join(f"#{r[0]} {r[1]}" for r in rows) or "(none)"
 
     # android
     def _run(self, cmd: list[str], timeout: int = 60) -> subprocess.CompletedProcess:
@@ -289,12 +289,12 @@ class Registry:
     def t_install(self, path: str) -> str:
         p = Path(os.path.expanduser(path))
         if not p.exists():
-            return f"ERROR: file tidak ada: {p}"
+            return f"ERROR: file not found: {p}"
         r = self._run(["pm", "install", "-r", str(p)], timeout=300)
         if r.returncode == 0 and "Success" in (r.stdout + r.stderr):
             return "OK: " + (r.stdout + r.stderr).strip()
-        return (f"GAGAL pm install: {(r.stdout + r.stderr).strip()[:300]}\n"
-                f"Fallback: termux-open '{p}' lalu ketuk Install, atau pakai SAI untuk split.")
+        return (f"pm install FAILED: {(r.stdout + r.stderr).strip()[:300]}\n"
+                f"Fallback: termux-open '{p}' then tap Install, or use SAI for splits.")
 
     def t_uninstall(self, package: str) -> str:
         r = self._run(["pm", "uninstall", package], timeout=120)
@@ -311,7 +311,7 @@ class Registry:
         if filter:
             rx = re.compile(filter, re.I)
             out = "\n".join(l for l in out.splitlines() if rx.search(l))
-        return out[-12000:] or "(kosong)"
+        return out[-12000:] or "(empty)"
 
     # subagents
     def t_delegate(self, tasks: list, max_parallel: int | None = None) -> str:

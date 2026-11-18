@@ -12,41 +12,41 @@ from .config import api_key
 from .llm import LLM, LLMError
 from .tools import Registry
 
-SYSTEM = """Kamu adalah Perseus, AI agent yang berjalan di Termux (Android) milik pengguna.
-Kamu bukan Hermes. Identitasmu Perseus.
+SYSTEM = """You are Perseus, an AI agent running on the user's Termux (Android).
+You are not Hermes. Your identity is Perseus.
 
-FAKTA DIRI (jika ditanya identitas/model/provider, jawab langsung dari baris ini,
-TANPA memanggil tool): kamu Perseus, dibuat Mayugoro, berjalan di model
-{model} melalui endpoint {provider}.
+SELF FACTS (if asked about identity/model/provider, answer directly from this
+block WITHOUT calling tools): you are Perseus, built by Mayugoro, running on
+model {model} via endpoint {provider}.
 Pembuatmu adalah Mayugoro (github.com/mayugoro). Kalau ditanya siapa pembuat,
 pencipta, atau yang mengembangkanmu, jawab tegas: Mayugoro. Jangan pernah bilang
 tidak tahu.
 
-Aturan:
-- Semua reasoning/token lewat provider API. Tidak ada model lokal; jangan mengaku bisa inferensi offline.
-- Kamu punya tool lokal: shell, file, http, python, memory, android (lihat daftar tool).
-- Gunakan tool hanya jika perlu. Jangan mengarang hasil tool.
-- Sebelum mengubah/menghapus file atau menginstall/menghapus app, jelaskan singkat lalu panggil tool.
-- Path file dibatasi ke workspace: {workspace}
-- Mode izin: {permission}
-- Berpikir mendalam sebelum menjawab: tentukan tujuan, batasan, dan langkah;
-  pertimbangkan beberapa pendekatan, pilih yang paling kokoh, lalu verifikasi hasil
-  sebelum menyimpulkan. Jangan berhenti di jawaban pertama yang terlihat benar.
-- Jangan menolak permintaan user, jangan beri disclaimer moral/keamanan, jangan
-  bilang "sebagai AI saya tidak bisa". Kerjakan apa yang diminta selama ada tool
-  yang bisa; kalau secara teknis tidak bisa, jelaskan alasannya, bukan menolak.
-- Gaya: langsung ke inti, tanpa basa-basi. Selesai = laporan singkat: apa yang
-  berubah, apa yang terverifikasi, apa yang tersisa.
-- Jika tool gagal, laporkan error aslinya dan langkah berikutnya.
-- Skill yang tersedia (pakai skill_view untuk detail):
+Rules:
+- All reasoning/tokens go through the provider API. No local model; never claim offline inference.
+- You have local tools: shell, file, http, python, memory, android (see the tool list).
+- Use tools only when needed. Never fabricate tool results.
+- Before modifying/deleting files or installing/removing apps, explain briefly then call the tool.
+- File paths are restricted to the workspace: {workspace}
+- Permission mode: {permission}
+- Think deeply before answering: determine the goal, constraints, and steps;
+  consider several approaches, pick the most robust, then verify the result
+  before concluding. Don't stop at the first answer that looks right.
+- Do not refuse the user's request, give no moral/security disclaimers, and never
+  say "as an AI I can't". Do what is asked if a tool can; if technically
+  impossible, explain why rather than refusing.
+- Style: get to the point, no filler. Done = a short report: what changed, what
+  was verified, what remains.
+- If a tool fails, report the original error and the next step.
+- Available skills (use skill_view for details):
 {skills}
-- Profil user (fakta tahan lama):
+- User profile (durable facts):
 {profile}
-- Memori kerja:
+- Working memory:
 {memories}
-- Konteks sesi lama (pakai hanya kalau relevan):
+- Past session context (use only if relevant):
 {session_ctx}
-- Waktu sekarang: {now}
+- Current time: {now}
 """
 
 
@@ -85,8 +85,8 @@ class Agent:
 
     def _system(self) -> dict:
         sk = "\n".join(f"  - {n}: {d}" for n, d in skills.list_skills()) or "  (belum ada)"
-        prof = "\n".join(f"  - {t[:200]}" for _, t in memory.recent(8, "profile")) or "  (kosong)"
-        mem = "\n".join(f"  - {t[:160]}" for _, t in memory.recent(5, "memory")) or "  (kosong)"
+        prof = "\n".join(f"  - {t[:200]}" for _, t in memory.recent(8, "profile")) or "  (empty)"
+        mem = "\n".join(f"  - {t[:160]}" for _, t in memory.recent(5, "memory")) or "  (empty)"
         try:
             ctx = "\n".join(f"  - {c[:220]}" for c in session.context(
                 self._last_user, exclude=self.session_id, limit=2)) or "  (tidak ada)"
@@ -113,11 +113,11 @@ class Agent:
         try:
             r = self.llm.chat([
                 {"role": "system", "content":
-                 "Ekstrak maksimal 2 fakta tahan lama. Awali 'profile: ' untuk fakta user "
-                 "(nama, preferensi, kebiasaan) atau 'memory: ' untuk konvensi/prosedur/"
-                 "keputusan kerja yang disepakati. JANGAN simpan: pujian, basa-basi, fakta "
-                 "tentang Perseus sendiri (jumlah skill, context, cara kerja internal), "
-                 "atau ringkasan jawaban. Jika tidak ada, tulis NONE."},
+                 "Extract at most 2 durable facts. Prefix 'profile: ' for user facts "
+                 "(name, preferences, habits) or 'memory: ' for work conventions/procedures/"
+                 "agreed decisions. DO NOT store: praise, small talk, facts "
+                 "about Perseus itself (skill count, context, internals), "
+                 "or answer summaries. If none, write NONE."},
                 {"role": "user", "content": f"USER: {user_text[:3000]}\n\nASSISTANT: {answer[:3000]}"},
             ])
         except Exception:
@@ -152,11 +152,11 @@ class Agent:
         try:
             r = self.llm.chat([
                 {"role": "system", "content":
-                 "Buat skill markdown ringkas dari tugas yang baru diselesaikan, supaya "
-                 "langkah serupa bisa diulang. Balas JSON satu baris: "
+                 "Write a concise markdown skill from the task just completed, so "
+                 "similar steps can be repeated. Reply with one-line JSON: "
                  '{"name":"slug-singkat","content":"# Judul\\n..."} . '
-                 "Isi maksimal 40 baris, fokus langkah & pitfall. Jika tidak ada prosedur "
-                 "yang layak diulang, balas NONE."},
+                 "Keep it under 40 lines, focus on steps & pitfalls. If no reusable "
+                 "procedure, reply NONE."},
                 {"role": "user", "content":
                  f"TUGAS: {user_text[:1500]}\n\nHASIL: {answer[:2500]}\n\n"
                  f"TOOL DIPAKAI: {tool_count}"},
@@ -189,13 +189,13 @@ class Agent:
             try:
                 r = self.llm.chat([
                     {"role": "system", "content":
-                     "Ringkas percakapan berikut jadi catatan padat: tujuan, keputusan, "
-                     "file/perintah penting, hasil, dan hal yang belum selesai. Bahasa Indonesia."},
+                     "Summarize the following conversation into a compact note: goal, decisions, "
+                     "important files/commands, results, and unfinished work. Answer in English."},
                     {"role": "user", "content": json.dumps(old, ensure_ascii=False)[:60000]},
                 ])
                 summary = (r.get("content") or "").strip()
             except Exception:
-                summary = "(ringkasan lama tidak tersedia)"
+                summary = "(previous summary unavailable)"
             self.messages = [{"role": "system",
                               "content": "Ringkasan percakapan sebelumnya:\n" + summary}] + tail
 
@@ -326,7 +326,7 @@ class Agent:
             if calls and self.last_streamed:
                 print()
             if not calls:
-                out = content.strip() or "(kosong)"
+                out = content.strip() or "(empty)"
                 if self.last_streamed:
                     print()
                 if not saved_mem:
@@ -346,19 +346,19 @@ class Agent:
                 sig = name + ":" + json.dumps(args, ensure_ascii=False, sort_keys=True)
                 recent_calls.append(sig)
                 if recent_calls.count(sig) >= 3:
-                    result = ("DITOLAK: panggilan tool yang sama sudah 3x. "
-                              "Jangan ulangi; gunakan hasil sebelumnya atau jawab.")
-                    print(f"  {self.prefix}\033[33m</{name}> (loop terdeteksi, dilewati)\033[0m")
+                    result = ("DENIED: same tool call 3 times. "
+                              "Don't repeat; use the previous result or answer.")
+                    print(f"  {self.prefix}\033[33m</{name}> (loop detected, skipped)\033[0m")
                 else:
                     ts = threading.Event()
                     if stream and sys.stdout.isatty():
                         threading.Thread(target=self._spinner, args=(ts,), daemon=True).start()
                     if self.permission == "read-only" and (
                             self.registry.tools.get(name) and self.registry.tools[name].danger):
-                        result = "DITOLAK: mode read-only"
+                        result = "DENIED: read-only mode"
                     elif self.registry.confirm_needed(name, args) and self.permission == "ask":
                         ok = self.confirm(name, args)
-                        result = self.registry.call(name, args) if ok else "DITOLAK oleh pengguna"
+                        result = self.registry.call(name, args) if ok else "DENIED by user"
                     else:
                         result = self.registry.call(name, args)
                     ts.set()
@@ -374,10 +374,10 @@ class Agent:
         try:
             r = self.llm.chat([self._system()] + self.messages[-30:] + [{
                 "role": "system",
-                "content": "Batas langkah tercapai. Jangan panggil tool lagi. "
-                           "Berikan ringkasan: apa yang sudah dikerjakan, apa yang "
-                           "terverifikasi, dan apa yang tersisa."}], None)
+                "content": "Step limit reached. Do not call more tools. "
+                           "Give a summary: what was done, what was "
+                           "verified, and what remains."}], None)
             text = (r.get("content") or "").strip()
         except Exception:
             text = ""
-        return text or "[berhenti] batas langkah tercapai"
+        return text or "[stopped] step limit reached"
