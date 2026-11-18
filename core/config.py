@@ -17,6 +17,8 @@ DEFAULTS = {
     "max_steps": 0,
     "max_tokens": 4096,
     "timeout": 180,
+    "retries": 3,
+    "retry_delay": 15,
     "allow_root": False,
     "api_key_env": "PERSEUS_API_KEY",
     "show_reasoning": True,

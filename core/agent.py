@@ -45,7 +45,8 @@ class Agent:
         self.registry = Registry(cfg, allow_delegate=allow_delegate)
         self.llm = LLM(cfg["base_url"], api_key(cfg), cfg["model"],
                        int(cfg.get("max_tokens", 4096)), int(cfg.get("timeout", 180)),
-                       cfg.get("reasoning_effort", ""))
+                       cfg.get("reasoning_effort", ""),
+                       int(cfg.get("retries", 3)), int(cfg.get("retry_delay", 15)))
         self.confirm = confirm or (lambda name, args: False)
         self.permission = cfg.get("permission", "ask")
         self.show_reasoning = bool(cfg.get("show_reasoning", True))
@@ -176,25 +177,34 @@ class Agent:
                 sys.stdout.write(chunk)
                 sys.stdout.flush()
 
-            try:
-                if stream:
-                    msg = self.llm.stream_chat([self._system()] + self.messages[-40:], tools,
-                                               on_text=on_text, on_reasoning=on_reason,
-                                               on_first=on_first)
-                else:
-                    msg = self.llm.chat([self._system()] + self.messages[-40:], tools)
-            except LLMError as e:
+            msg = None
+            for attempt in range(1, self.llm.retries + 1):
+                try:
+                    if stream:
+                        msg = self.llm.stream_chat([self._system()] + self.messages[-40:], tools,
+                                                   on_text=on_text, on_reasoning=on_reason,
+                                                   on_first=on_first)
+                    else:
+                        msg = self.llm.chat([self._system()] + self.messages[-40:], tools)
+                    break
+                except LLMError as e:
+                    hard = any(f"HTTP {c}" in str(e) for c in (400, 401, 403, 404))
+                    if attempt < self.llm.retries and not self.last_streamed and not hard:
+                        self.llm._sleep(attempt, e)
+                        continue
+                    stop.set()
+                    return f"[provider error] {e}"
+            if msg is None:
                 stop.set()
-                return f"[provider error] {e}"
-            finally:
-                stop.set()
-                time.sleep(0.02)
-                if state["reason"]:
-                    sys.stdout.write("\033[0m\n")
-                    state["reason"] = False
-                if state["blue"]:
-                    sys.stdout.write("\033[0m")
-                    state["blue"] = False
+                return "[provider error] gagal setelah retry"
+            stop.set()
+            time.sleep(0.02)
+            if state["reason"]:
+                sys.stdout.write("\033[0m\n")
+                state["reason"] = False
+            if state["blue"]:
+                sys.stdout.write("\033[0m")
+                state["blue"] = False
 
             content = msg.get("content") or ""
             calls = msg.get("tool_calls") or []

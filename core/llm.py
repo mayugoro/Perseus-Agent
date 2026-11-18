@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 import json
+import sys
+import time
 import urllib.error
 import urllib.request
 
@@ -13,13 +15,27 @@ class LLMError(RuntimeError):
 class LLM:
     def __init__(self, base_url: str, api_key: str, model: str,
                  max_tokens: int = 4096, timeout: int = 180,
-                 reasoning_effort: str = ""):
+                 reasoning_effort: str = "", retries: int = 3,
+                 retry_delay: int = 15):
         self.base_url = base_url.rstrip("/")
         self.api_key = api_key
         self.model = model
         self.max_tokens = max_tokens
         self.timeout = timeout
         self.reasoning_effort = reasoning_effort
+        self.retries = max(1, retries)
+        self.retry_delay = max(0, retry_delay)
+
+    @staticmethod
+    def _retryable(e: Exception) -> bool:
+        if isinstance(e, urllib.error.HTTPError):
+            return e.code in (408, 409, 425, 429, 500, 502, 503, 504)
+        return True
+
+    def _sleep(self, attempt: int, err: Exception) -> None:
+        print(f"\033[2m[retry {attempt}/{self.retries}] {err} — tunggu "
+              f"{self.retry_delay}s…\033[0m", file=sys.stderr)
+        time.sleep(self.retry_delay)
 
     def _post(self, path: str, body: dict) -> dict:
         if not self.api_key:
@@ -34,20 +50,25 @@ class LLM:
                 "User-Agent": "Perseus/0.1 (Termux)",
             },
         )
-        try:
-            with urllib.request.urlopen(req, timeout=self.timeout) as resp:
-                return json.loads(resp.read())
-        except urllib.error.HTTPError as e:
-            body = e.read()[:800].decode("utf-8", "replace")
-            if self.reasoning_effort and e.code == 400:
-                saved, self.reasoning_effort = self.reasoning_effort, ""
-                try:
-                    return self.chat(messages, tools)
-                finally:
-                    self.reasoning_effort = saved
-            raise LLMError(f"HTTP {e.code}: {body}") from None
-        except Exception as e:
-            raise LLMError(f"request gagal: {e}") from None
+        last = None
+        for attempt in range(1, self.retries + 1):
+            try:
+                with urllib.request.urlopen(req, timeout=self.timeout) as resp:
+                    return json.loads(resp.read())
+            except urllib.error.HTTPError as e:
+                body = e.read()[:800].decode("utf-8", "replace")
+                last = LLMError(f"HTTP {e.code}: {body}")
+                if self._retryable(e) and attempt < self.retries:
+                    self._sleep(attempt, last)
+                    continue
+                raise last from None
+            except Exception as e:
+                last = LLMError(f"request gagal: {e}")
+                if attempt < self.retries:
+                    self._sleep(attempt, last)
+                    continue
+                raise last from None
+        raise last or LLMError("request gagal")
 
     def list_models(self) -> list[str]:
         req = urllib.request.Request(
@@ -166,7 +187,16 @@ class LLM:
         if tools:
             body["tools"] = tools
             body["tool_choice"] = "auto"
-        data = self._post("/chat/completions", body)
+        try:
+            data = self._post("/chat/completions", body)
+        except LLMError as e:
+            if "HTTP 400" in str(e) and self.reasoning_effort:
+                saved, self.reasoning_effort = self.reasoning_effort, ""
+                try:
+                    return self.chat(messages, tools)
+                finally:
+                    self.reasoning_effort = saved
+            raise
         try:
             return data["choices"][0]["message"]
         except (KeyError, IndexError):

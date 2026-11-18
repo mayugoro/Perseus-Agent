@@ -183,6 +183,14 @@ boleh mendelegasikan lagi (anti-rekursif).
 - Backup otomatis file yang ditimpa ke `.perseus/backups/`
 - Audit trail: `~/.perseus/sessions/*.jsonl`
 
+## Error provider
+
+Kalau upstream gagal (network, timeout, 429, 5xx), Perseus mencoba ulang
+**3x dengan jeda 15 detik** (`retries`, `retry_delay` di config). Error
+400/401/403/404 tidak di-retry karena itu kesalahan konfigurasi/model.
+Setelah semua percobaan gagal, balasan error ditampilkan tetapi **sesi tetap
+hidup** — prompt kembali dan percakapan bisa dilanjutkan.
+
 ## Batasan
 
 - Butuh koneksi ke provider; tidak ada mode offline

@@ -16,5 +16,7 @@
   "show_reasoning": true,
   "context_messages": 36,
   "reasoning_effort": "high",
-  "auto_learn": true
+  "auto_learn": true,
+  "retries": 3,
+  "retry_delay": 15
 }
