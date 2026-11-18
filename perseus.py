@@ -14,6 +14,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from core import config as cfgmod
 from core import queue as qmod
 from core import session as sess
+from core import skills
 from core.agent import Agent
 from core.llm import LLM
 
@@ -31,6 +32,15 @@ SLASH = [
     ("/session", "info sesi aktif"), ("/exit", "keluar"),
 ]
 
+LOGO_ART = [
+    "    ╱╱",
+    "   ╱ ╱",
+    "  ╱  ╱",
+    "     │",
+    "     │",
+    "     │",
+]
+
 BANNER = r"""
  ██████╗ ███████╗██████╗ ███████╗███████╗██╗   ██╗███████╗
  ██╔══██╗██╔════╝██╔══██╗██╔════╝██╔════╝██║   ██║██╔════╝
@@ -41,42 +51,56 @@ BANNER = r"""
 """
 
 
+def _clip(s: str, w: int) -> str:
+    s = str(s)
+    return s if len(s) <= w else s[: w - 1] + "…"
+
+
 def banner(cfg: dict) -> None:
-    print(f"{C['c']}{BANNER}{C['0']}")
-    print(f"  {C['b']}Perseus{C['0']} · Termux AI Agent")
-    print(f"  model     : {cfg['model']}")
-    print(f"  provider  : {cfg['base_url']}")
-    print(f"  mode      : {cfg['permission']} · reasoning: {cfg.get('reasoning_effort') or 'default'}"
-          + (" · YOLO" if cfg.get('yolo') else ""))
-    print(f"  workspace : {cfg['workspace']}")
-    print(f"  {C['y']}/help{C['0']} bantuan · {C['y']}/tools{C['0']} daftar tool · "
-          f"{C['y']}/exit{C['0']} keluar\n")
+    sk = skills_list_for_banner() if False else _skills_names(cfg)
+    model = str(cfg.get("model", "-")).split("/")[-1]
+    mode = cfg.get("permission", "ask")
+    extra = ""
+    if cfg.get("yolo"):
+        extra += " · YOLO"
+    if cfg.get("reasoning_effort"):
+        extra += f" · think:{cfg['reasoning_effort']}"
+    left = [
+        ("", "  Perseus · Termux AI Agent"),
+        ("model", model),
+        ("provider", _clip(cfg.get("base_url", "-"), 34)),
+        ("mode", mode + extra),
+        ("workspace", _clip(cfg.get("workspace", "-"), 30)),
+        ("skills", sk),
+    ]
+    L = 44
+    R = 14
+    top = "┌" + "─" * (L + 2) + "┬" + "─" * (R + 2) + "┐"
+    bot = "└" + "─" * (L + 2) + "┴" + "─" * (R + 2) + "┘"
+    print(top)
+    for i in range(max(len(left), len(LOGO_ART))):
+        ltxt = ""
+        if i < len(left):
+            k, v = left[i]
+            if v.startswith("  "):
+                ltxt = v
+            else:
+                ltxt = f"  {k:<9}: {v}"
+        ltxt = _clip(ltxt, L)
+        rt = LOGO_ART[i] if i < len(LOGO_ART) else ""
+        print("│ " + ltxt.ljust(L) + " │ " + C["c"] + rt.ljust(R) + C["0"] + " │")
+    print(bot)
 
 
-STATUS = {}
-
-
-def est_tokens(agent: Agent) -> int:
-    chars = sum(len(str(m.get("content") or "")) for m in agent.messages)
-    return max(0, chars // 4)
-
-
-def status_line() -> str:
-    agent = STATUS.get("agent")
-    cfg = STATUS.get("cfg", {})
-    if not agent:
-        return ""
-    limit = int(cfg.get("context_length") or getattr(agent, "context_length", 128000) or 128000)
-    tok = est_tokens(agent)
-    pct = min(100, int(tok * 100 / max(1, limit)))
-    fill = min(10, pct // 10)
-    bar = "█" * fill + "░" * (10 - fill)
-    dur = int(time.time() - STATUS.get("start", time.time()))
-    model = str(agent.llm.model).split("/")[-1]
-    last = agent.last_elapsed
-    yolo = " · YOLO" if cfg.get("yolo") else ""
-    return (f" ☤ {model}{yolo} · ctx {pct}% [{bar}] {tok}/{limit//1000}k"
-            f" · {last:.0f}s · ⏲ {dur}s    / commands · @ files · ! shell")
+def _skills_names(cfg: dict) -> str:
+    try:
+        sk = skills.list_skills()
+    except Exception:
+        sk = []
+    if not sk:
+        return "0 skill"
+    names = [n for n, _ in sk]
+    return f"{len(sk)} skill: " + ", ".join(names[:4]) + ("…" if len(names) > 4 else "")
 
 
 def welcome() -> None:
