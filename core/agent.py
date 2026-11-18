@@ -33,14 +33,18 @@ Aturan:
 - Jika tool gagal, laporkan error aslinya dan langkah berikutnya.
 - Skill yang tersedia (pakai skill_view untuk detail):
 {skills}
-- Memori terbaru:
+- Profil user (fakta tahan lama):
+{profile}
+- Memori kerja:
 {memories}
+- Konteks sesi lama (pakai hanya kalau relevan):
+{session_ctx}
 - Waktu sekarang: {now}
 """
 
 
 class Agent:
-    def __init__(self, cfg: dict, confirm=None, log=True, allow_delegate=True):
+    def __init__(self, cfg: dict, confirm=None, log=True, allow_delegate=True, prefix=""):
         self.cfg = cfg
         self.registry = Registry(cfg, allow_delegate=allow_delegate)
         self.llm = LLM(cfg["base_url"], api_key(cfg), cfg["model"],
@@ -58,6 +62,10 @@ class Agent:
         self.permission = cfg.get("permission", "ask")
         self.show_reasoning = bool(cfg.get("show_reasoning", True))
         self.auto_learn = bool(cfg.get("auto_learn", True))
+        self.curator = bool(cfg.get("curator", True))
+        self.curator_min = int(cfg.get("curator_min_tools", 4))
+        self.prefix = prefix
+        self._last_user = ""
         self.context_messages = int(cfg.get("context_messages", 36))
         self.max_steps = int(cfg.get("max_steps", 8))
         self.messages: list[dict] = []
@@ -70,11 +78,17 @@ class Agent:
 
     def _system(self) -> dict:
         sk = "\n".join(f"  - {n}: {d}" for n, d in skills.list_skills()) or "  (belum ada)"
-        mem = "\n".join(f"  - {t[:160]}" for _, t in memory.recent(5)) or "  (kosong)"
+        prof = "\n".join(f"  - {t[:200]}" for _, t in memory.recent(8, "profile")) or "  (kosong)"
+        mem = "\n".join(f"  - {t[:160]}" for _, t in memory.recent(5, "memory")) or "  (kosong)"
+        try:
+            ctx = "\n".join(f"  - {c[:220]}" for c in session.context(
+                self._last_user, exclude=self.session_id, limit=2)) or "  (tidak ada)"
+        except Exception:
+            ctx = "  (tidak ada)"
         return {"role": "system", "content": SYSTEM.format(
             workspace=self.cfg["workspace"],
             permission=self.permission,
-            skills=sk, memories=mem,
+            skills=sk, profile=prof, memories=mem, session_ctx=ctx,
             now=time.strftime("%Y-%m-%d %H:%M:%S %Z"))}
 
     def _learn(self, user_text: str, answer: str) -> None:
@@ -83,9 +97,10 @@ class Agent:
         try:
             r = self.llm.chat([
                 {"role": "system", "content":
-                 "Ekstrak maksimal 2 fakta tahan lama dari percakapan: preferensi user, "
-                 "konvensi, prosedur, atau keputusan penting. Tulis satu fakta per baris "
-                 "diawali '- '. Jika tidak ada yang layak disimpan, tulis NONE."},
+                 "Ekstrak maksimal 2 fakta tahan lama dari percakapan. Awali tiap baris "
+                 "dengan 'profile: ' untuk fakta tentang user (nama, preferensi, kebiasaan) "
+                 "atau 'memory: ' untuk konvensi/prosedur/keputusan kerja. Jika tidak ada "
+                 "yang layak disimpan, tulis NONE."},
                 {"role": "user", "content": f"USER: {user_text[:3000]}\n\nASSISTANT: {answer[:3000]}"},
             ])
         except Exception:
@@ -95,10 +110,15 @@ class Agent:
             return
         n = 0
         for line in text.splitlines():
-            line = line.strip()
-            if line.startswith("- ") and len(line) > 4:
-                memory.save(line[2:].strip())
-                print(f"\033[2m[learn] {line[2:][:160]}\033[0m")
+            line = line.strip().lstrip("-* ").strip()
+            kind = "memory"
+            if line.lower().startswith("profile:"):
+                kind, line = "profile", line.split(":", 1)[1].strip()
+            elif line.lower().startswith("memory:"):
+                kind, line = "memory", line.split(":", 1)[1].strip()
+            if len(line) > 4 and not line.upper().startswith("NONE"):
+                memory.save(line, kind)
+                print(f"\033[2m[learn:{kind}] {line[:160]}\033[0m")
                 n += 1
                 if n >= 2:
                     break
@@ -106,6 +126,36 @@ class Agent:
     def _tokens(self) -> int:
         chars = sum(len(str(m.get("content") or "")) for m in self.messages)
         return max(0, chars // 4)
+
+    def _curate(self, user_text: str, answer: str, tool_count: int) -> None:
+        if not self.curator or tool_count < self.curator_min:
+            return
+        try:
+            r = self.llm.chat([
+                {"role": "system", "content":
+                 "Buat skill markdown ringkas dari tugas yang baru diselesaikan, supaya "
+                 "langkah serupa bisa diulang. Balas JSON satu baris: "
+                 '{"name":"slug-singkat","content":"# Judul\\n..."} . '
+                 "Isi maksimal 40 baris, fokus langkah & pitfall. Jika tidak ada prosedur "
+                 "yang layak diulang, balas NONE."},
+                {"role": "user", "content":
+                 f"TUGAS: {user_text[:1500]}\n\nHASIL: {answer[:2500]}\n\n"
+                 f"TOOL DIPAKAI: {tool_count}"},
+            ])
+        except Exception:
+            return
+        text = (r.get("content") or "").strip()
+        if not text or text.upper().startswith("NONE"):
+            return
+        try:
+            obj = json.loads(text[text.index("{"):text.rindex("}") + 1])
+            name, content = obj.get("name", ""), obj.get("content", "")
+            if not name or not content:
+                return
+            path = skills.save(name, content)
+            print(f"\033[2m[curator] skill disimpan: {path}\033[0m")
+        except Exception:
+            return
 
     def _compact(self) -> None:
         limit = int(self.context_length or 128000)
@@ -155,6 +205,7 @@ class Agent:
             self.last_elapsed = time.time() - t0
 
     def _run(self, user_text: str, stream: bool = True) -> str:
+        self._last_user = user_text
         self.messages.append({"role": "user", "content": user_text})
         self._record({"role": "user", "content": user_text})
         tools = self.registry.schema()
@@ -163,6 +214,7 @@ class Agent:
 
         self._compact()
         saved_mem = False
+        tool_count = 0
         recent_calls: list[str] = []
         step = 0
         while self.max_steps <= 0 or step < self.max_steps:
@@ -237,6 +289,7 @@ class Agent:
                     print()
                 if not saved_mem:
                     self._learn(user_text, out)
+                self._curate(user_text, out, tool_count)
                 return out
 
             for call in calls:
@@ -247,12 +300,13 @@ class Agent:
                 except json.JSONDecodeError:
                     args = {}
 
+                tool_count += 1
                 sig = name + ":" + json.dumps(args, ensure_ascii=False, sort_keys=True)
                 recent_calls.append(sig)
                 if recent_calls.count(sig) >= 3:
                     result = ("DITOLAK: panggilan tool yang sama sudah 3x. "
                               "Jangan ulangi; gunakan hasil sebelumnya atau jawab.")
-                    print(f"  \033[33m⟡ {name} (loop terdeteksi, dilewati)\033[0m")
+                    print(f"  {self.prefix}\033[33m⟡ {name} (loop terdeteksi, dilewati)\033[0m")
                 else:
                     if self.permission == "read-only" and (
                             self.registry.tools.get(name) and self.registry.tools[name].danger):
@@ -262,7 +316,7 @@ class Agent:
                         result = self.registry.call(name, args) if ok else "DITOLAK oleh pengguna"
                     else:
                         result = self.registry.call(name, args)
-                    print(f"  \033[36m⟡ {name}\033[0m {json.dumps(args, ensure_ascii=False)[:160]}")
+                    print(f"  {self.prefix}\033[36m⟡ {name}\033[0m {json.dumps(args, ensure_ascii=False)[:160]}")
                 if name == "memory_save" and result.startswith("OK"):
                     saved_mem = True
                 self.messages.append({"role": "tool", "tool_call_id": call.get("id", ""),

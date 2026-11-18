@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import re
 import sqlite3
 import time
 from pathlib import Path
@@ -184,6 +185,30 @@ def rel_time(ts: float) -> str:
     if d < 86400:
         return f"{d // 3600}h"
     return f"{d // 86400}d"
+
+
+def context(query: str, exclude: str | None = None, limit: int = 2) -> list[str]:
+    """Cari cuplikan dari sesi lama yang relevan dengan query."""
+    terms = [w for w in re.findall(r"[a-zA-Z0-9]+", query.lower()) if len(w) >= 4][:6]
+    if not terms:
+        return []
+    q = " OR ".join(f'"{t}"' for t in terms)
+    c = _conn()
+    try:
+        sql = ("SELECT s.title, snippet(messages_fts,0,'[',']','…',10) "
+               "FROM messages_fts f JOIN sessions s ON s.id=f.session_id "
+               "WHERE messages_fts MATCH ?")
+        args: list = [q]
+        if exclude:
+            sql += " AND s.id<>?"
+            args.append(exclude)
+        sql += " ORDER BY rank LIMIT ?"
+        args.append(limit)
+        rows = c.execute(sql, args).fetchall()
+    except sqlite3.OperationalError:
+        rows = []
+    c.close()
+    return [f"{t or 'sesi lama'}: {sn}" for t, sn in rows]
 
 
 def fmt_time(ts: float) -> str:

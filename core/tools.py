@@ -131,8 +131,10 @@ class Registry:
                      "code": {"type": "string"}, "timeout": {"type": "integer"}},
                   "required": ["code"]}, self.t_py)
 
-        self.add("memory_save", "Simpan catatan permanen.",
-                 {"type": "object", "properties": {"text": {"type": "string"}},
+        self.add("memory_save", "Simpan catatan permanen (kind: profile untuk fakta user).",
+                 {"type": "object", "properties": {
+                     "text": {"type": "string"},
+                     "kind": {"type": "string", "enum": ["profile", "memory"]}},
                   "required": ["text"]}, self.t_mem_save)
 
         self.add("memory_search", "Cari catatan permanen.",
@@ -258,9 +260,9 @@ class Registry:
         out = (r.stdout or "") + (("\n[stderr]\n" + r.stderr) if r.stderr else "")
         return f"exit={r.returncode}\n{out[:12000]}"
 
-    def t_mem_save(self, text: str) -> str:
-        mid = memory.save(text)
-        return f"OK memory #{mid}"
+    def t_mem_save(self, text: str, kind: str = "memory") -> str:
+        mid = memory.save(text, kind)
+        return f"OK {kind} #{mid}"
 
     def t_mem_search(self, query: str, limit: int = 5) -> str:
         rows = memory.search(query, int(limit))
@@ -322,20 +324,27 @@ class Registry:
         if not tasks:
             return "ERROR: tasks kosong"
 
-        def run_one(item: dict) -> dict:
+        def run_one(idx_item) -> dict:
+            i, item = idx_item
             goal = str(item.get("goal", "")).strip()
             ctx = str(item.get("context", "")).strip()
             sub_cfg = dict(self.cfg)
             sub_cfg["permission"] = conf.get("permission", "auto")
-            a = Agent(sub_cfg, confirm=lambda *_: True, log=True, allow_delegate=False)
+            tag = f"[A{i}]"
+            print(f"{tag} ▶ {goal[:100]}")
+            a = Agent(sub_cfg, confirm=lambda *_: True, log=True,
+                      allow_delegate=False, prefix=tag + " ")
             prompt = goal if not ctx else f"{goal}\n\nKonteks:\n{ctx}"
             try:
-                return {"goal": goal, "result": a.run(prompt)}
+                res = a.run(prompt)
+                print(f"{tag} ✓ selesai")
+                return {"goal": goal, "result": res}
             except Exception as e:
+                print(f"{tag} ✗ {type(e).__name__}: {e}")
                 return {"goal": goal, "result": f"ERROR: {type(e).__name__}: {e}"}
 
         with cf.ThreadPoolExecutor(max_workers=limit) as ex:
-            results = list(ex.map(run_one, tasks))
+            results = list(ex.map(run_one, list(enumerate(tasks, 1))))
         return json.dumps(results, ensure_ascii=False, indent=2)
 
     # skills

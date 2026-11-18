@@ -28,6 +28,8 @@ DEFAULTS = {
     "compress_at": 0.7,
     "context_length": 128000,
     "subagents": {"enabled": True, "max_parallel": 3, "permission": "auto"},
+    "curator": True,
+    "curator_min_tools": 4,
 }
 
 

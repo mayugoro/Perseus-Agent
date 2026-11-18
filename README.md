@@ -139,6 +139,19 @@ perseus resume <id|title>          # langsung lanjut sesi
 File JSONL lama di `~/.perseus/sessions/` dimigrasikan otomatis sekali saat
 pertama kali DB dibuka, lalu tidak ditulis lagi.
 
+## Rantai belajar
+
+- **Profil user** dan **memori kerja** dipisah (`kind=profile` / `memory`).
+  Profil diinjeksi sebagai blok sendiri di system prompt.
+- **Konsolidasi**: fakta mirip (Jaccard >= 0.75) digabung otomatis saat disimpan.
+- **Session search otomatis**: potongan sesi lama yang relevan dicari lewat FTS
+  dan dimasukkan ke prompt sebagai “Konteks sesi lama”.
+- **Curator**: setelah tugas yang memakai >= `curator_min_tools` (default 4) tool,
+  Perseus meminta model merangkum prosedur jadi skill markdown dan menyimpannya
+  ke `~/.perseus/skills/` (nama `auto` mengikuti usulan model). Toggle `/curator`.
+- **Subagent live**: setiap subagent diberi tag `[A1]`, `[A2]`, ... dan progres
+  tool-nya terlihat saat berjalan.
+
 ## YOLO
 
 `/yolo` (atau `/yolo on|off`) mematikan konfirmasi untuk tool berisiko —

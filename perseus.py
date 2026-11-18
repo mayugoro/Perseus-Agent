@@ -23,7 +23,7 @@ SLASH = [
     ("/help", "bantuan"), ("/tools", "daftar tool"), ("/new", "reset percakapan"),
     ("/mode", "ask | auto | read-only"), ("/model", "daftar / pilih model"),
     ("/reasoning", "default | low | medium | high"), ("/think", "toggle blok thinking"),
-    ("/yolo", "matikan konfirmasi tool berisiko"), ("/learn", "toggle auto-learn ke memory"), ("/queue", "antrean tugas"),
+    ("/curator", "auto-skill setelah tugas kompleks"), ("/yolo", "matikan konfirmasi tool berisiko"), ("/learn", "toggle auto-learn ke memory"), ("/queue", "antrean tugas"),
     ("/agents", "subagent paralel"), ("/steps", "batas langkah tool"),
     ("/usage", "token & durasi sesi"), ("/sessions", "daftar / cari sesi"), ("/resume", "lanjutkan sesi"),
     ("/title", "atur judul sesi"),
@@ -611,6 +611,14 @@ def main() -> int:
                 show_history(msgs)
                 continue
             sessions_table(sess.list_sessions())
+            continue
+        if line == "/curator" or line.startswith("/curator "):
+            arg = line.split(None, 1)[1].strip().lower() if " " in line else ""
+            on = (not cfg.get("curator", True)) if arg not in ("on", "off") else (arg == "on")
+            cfg["curator"] = on
+            agent.curator = on
+            cfgmod.save(cfg)
+            print(f"curator={'on' if on else 'off'}")
             continue
         if line == "/yolo" or line.startswith("/yolo "):
             arg = line.split(None, 1)[1].strip().lower() if " " in line else ""
