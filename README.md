@@ -57,8 +57,13 @@ export PERSEUS_API_KEY='...'
 /new                       reset percakapan
 /mode ask|auto|read-only   mode izin
 /model <id>                ganti model
+/queue [tugas|run|rm N|clear]  antrean tugas
 /exit
 ```
+
+`/queue <tugas>` menambah tugas, `/queue` melihat daftar, `/queue run`
+menjalankannya berurutan (sesi sama), `/queue rm N` dan `/queue clear` mengelola.
+Antrean tersimpan di `~/.perseus/queue.json`, jadi tidak hilang saat CLI ditutup.
 
 ## Tool
 

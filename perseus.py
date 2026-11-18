@@ -11,6 +11,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from core import config as cfgmod
+from core import queue as qmod
 from core.agent import Agent
 
 C = {"b": "\033[1m", "c": "\033[36m", "y": "\033[33m", "r": "\033[31m", "0": "\033[0m"}
@@ -145,7 +146,7 @@ def main() -> int:
             break
         if line == "/help":
             print("/tools  daftar tool\n/new    reset percakapan\n/mode ask|auto|read-only"
-                  "\n/model <id>\n/exit   keluar")
+                  "\n/model <id>\n/queue [tugas|run|rm N|clear]  antrean tugas\n/exit   keluar")
             continue
         if line == "/tools":
             show_tools(agent)
@@ -170,6 +171,44 @@ def main() -> int:
             cfg["model"] = m
             cfgmod.save(cfg)
             print(f"model={m}")
+            continue
+        if line == "/queue" or line.startswith("/queue "):
+            rest = line[6:].strip()
+            if not rest:
+                qs = qmod.items()
+                if not qs:
+                    print("(antrean kosong)")
+                else:
+                    for i, q in enumerate(qs, 1):
+                        print(f"{i}. [{q.get('created','')}] {q['text'][:160]}")
+                    print("\n/queue run  jalankan semua · /queue rm N · /queue clear")
+            elif rest == "run":
+                qs = qmod.items()
+                if not qs:
+                    print("(antrean kosong)")
+                else:
+                    for i, q in enumerate(qs, 1):
+                        print(f"\n{C['c']}[queue {i}/{len(qs)}]{C['0']} {q['text']}")
+                        try:
+                            out = agent.run(q["text"])
+                            print(out)
+                        except KeyboardInterrupt:
+                            print("(dibatalkan, sisa antrean disimpan)")
+                            break
+                        qmod.remove(1)
+                    print(f"\nantrean selesai, sisa {len(qmod.items())}")
+            elif rest == "clear":
+                n = qmod.clear()
+                print(f"{n} tugas dihapus")
+            elif rest.startswith("rm "):
+                try:
+                    ok = qmod.remove(int(rest.split()[1]))
+                    print("dihapus" if ok else "nomor tidak ada")
+                except (IndexError, ValueError):
+                    print("format: /queue rm N")
+            else:
+                n = qmod.add(rest)
+                print(f"ditambahkan ke antrean (#{n})")
             continue
         try:
             print(agent.run(line))
