@@ -23,7 +23,7 @@ SLASH = [
     ("/help", "bantuan"), ("/tools", "daftar tool"), ("/new", "reset percakapan"),
     ("/mode", "ask | auto | read-only"), ("/model", "daftar / pilih model"),
     ("/reasoning", "default | low | medium | high"), ("/think", "toggle blok thinking"),
-    ("/learn", "toggle auto-learn ke memory"), ("/queue", "antrean tugas"),
+    ("/yolo", "matikan konfirmasi tool berisiko"), ("/learn", "toggle auto-learn ke memory"), ("/queue", "antrean tugas"),
     ("/agents", "subagent paralel"), ("/steps", "batas langkah tool"),
     ("/usage", "token & durasi sesi"), ("/sessions", "daftar / cari sesi"), ("/resume", "lanjutkan sesi"),
     ("/title", "atur judul sesi"),
@@ -45,7 +45,8 @@ def banner(cfg: dict) -> None:
     print(f"  {C['b']}Perseus{C['0']} · Termux AI Agent")
     print(f"  model     : {cfg['model']}")
     print(f"  provider  : {cfg['base_url']}")
-    print(f"  mode      : {cfg['permission']} · reasoning: {cfg.get('reasoning_effort') or 'default'}")
+    print(f"  mode      : {cfg['permission']} · reasoning: {cfg.get('reasoning_effort') or 'default'}"
+          + (" · YOLO" if cfg.get('yolo') else ""))
     print(f"  workspace : {cfg['workspace']}")
     print(f"  {C['y']}/help{C['0']} bantuan · {C['y']}/tools{C['0']} daftar tool · "
           f"{C['y']}/exit{C['0']} keluar\n")
@@ -72,7 +73,8 @@ def status_line() -> str:
     dur = int(time.time() - STATUS.get("start", time.time()))
     model = str(agent.llm.model).split("/")[-1]
     last = agent.last_elapsed
-    return (f" ☤ {model} · ctx {pct}% [{bar}] {tok}/{limit//1000}k"
+    yolo = " · YOLO" if cfg.get("yolo") else ""
+    return (f" ☤ {model}{yolo} · ctx {pct}% [{bar}] {tok}/{limit//1000}k"
             f" · {last:.0f}s · ⏲ {dur}s    / commands · @ files · ! shell")
 
 
@@ -609,6 +611,20 @@ def main() -> int:
                 show_history(msgs)
                 continue
             sessions_table(sess.list_sessions())
+            continue
+        if line == "/yolo" or line.startswith("/yolo "):
+            arg = line.split(None, 1)[1].strip().lower() if " " in line else ""
+            on = (not cfg.get("yolo", False)) if arg not in ("on", "off") else (arg == "on")
+            if on:
+                cfg["_prev_permission"] = agent.permission if agent.permission != "auto" else "ask"
+                cfg["yolo"] = True
+                agent.permission = "auto"
+                print("YOLO on — tool berisiko jalan tanpa konfirmasi. /yolo off untuk kembali.")
+            else:
+                cfg["yolo"] = False
+                agent.permission = cfg.pop("_prev_permission", "ask")
+                print(f"YOLO off — mode izin kembali ke {agent.permission}")
+            cfgmod.save(cfg)
             continue
         if line == "/learn":
             agent.auto_learn = not agent.auto_learn

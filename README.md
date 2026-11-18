@@ -80,6 +80,7 @@ butuh TTY). Tab/arah untuk memilih, Enter untuk menjalankan.
 /mode ask|auto|read-only   mode izin
 /model [id]                lihat provider + pilih model + reasoning
 /queue [tugas|run|rm N|clear]  antrean tugas
+/yolo                      matikan konfirmasi tool berisiko (toggle)
 /reasoning [level]         default|low|medium|high
 /steps [N]                 batas langkah tool (0/default = unlimited)
 /sessions                  daftar sesi tersimpan
@@ -137,6 +138,12 @@ perseus resume <id|title>          # langsung lanjut sesi
 
 File JSONL lama di `~/.perseus/sessions/` dimigrasikan otomatis sekali saat
 pertama kali DB dibuka, lalu tidak ditulis lagi.
+
+## YOLO
+
+`/yolo` (atau `/yolo on|off`) mematikan konfirmasi untuk tool berisiko —
+setara auto-approve di Hermes. Mode izin sebelumnya disimpan dan dikembalikan
+saat `/yolo off`. Status `YOLO` tampil di banner dan status bar.
 
 ## Belajar & berpikir
 
