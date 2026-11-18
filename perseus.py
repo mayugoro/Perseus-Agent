@@ -85,19 +85,41 @@ def _clip(s: str, w: int) -> str:
     return s if len(s) <= w else s[: w - 1] + "…"
 
 
+TOOLS_SHORT = [
+    "Shell", "File · read/write/patch/search", "HTTP fetch", "Python exec",
+    "Memory + FTS5", "Android: list/apps/info", "Android: install/uninstall/launch",
+    "Android: logcat & log", "Subagent paralel", "Kurator skill otomatis",
+    "Sesi SQLite + resume", "Queue tugas",
+]
+
+
 def banner(cfg: dict) -> None:
-    for ln in LOGO_ART:
-        print("\033[36m" + ln + "\033[0m")
+    import shutil
+    cols = shutil.get_terminal_size((80, 24)).columns
+    logo_w = max(len(l) for l in LOGO_ART)
+    left_w = logo_w + 2
+    right_w = max(0, cols - left_w - 2)
+    right = []
+    right += TOOLS_SHORT
+    try:
+        right += [n for n, _ in skills.list_skills()]
+    except Exception:
+        pass
+    right = right[: len(LOGO_ART)]
+    for i in range(len(LOGO_ART)):
+        lt = " " + LOGO_ART[i]
+        rt = "• " + right[i] if i < len(right) else ""
+        rt = _clip(rt, right_w)
+        print("\033[36m" + lt.ljust(left_w) + "\033[0m" + rt)
     model = str(cfg.get("model", "-")).split("/")[-1]
     mode = cfg.get("permission", "ask")
     if cfg.get("yolo"):
         mode += " · YOLO"
     if cfg.get("reasoning_effort"):
         mode += " · think:" + cfg["reasoning_effort"]
-    sk = _skills_names(cfg)
     print(f"  {C['b']}Perseus{C['0']} · model {model} · provider "
           f"{_clip(cfg.get('base_url','-'),40)} · mode {mode}")
-    print(f"  workspace {_clip(cfg.get('workspace','-'),44)} · skills {sk}\n")
+    print(f"  workspace {_clip(cfg.get('workspace','-'),44)} · skills {_skills_names(cfg)}\n")
 
 
 def _skills_names(cfg: dict) -> str:
