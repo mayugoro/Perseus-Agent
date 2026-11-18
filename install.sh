@@ -11,6 +11,13 @@ python3 -m pip install --quiet --upgrade pip || true
 python3 -m pip install --quiet -r requirements.txt \
   || python3 -m pip install --quiet prompt_toolkit || true
 
+# kunci ukuran font Termux agar tidak berubah (pinch/zoom)
+mkdir -p "$HOME/.termux"
+touch "$HOME/.termux/termux.properties"
+grep -q "^terminal-font-size" "$HOME/.termux/termux.properties" || \
+  echo "terminal-font-size = 12" >> "$HOME/.termux/termux.properties"
+termux-reload-settings 2>/dev/null || true
+
 # cek pyexpat (dipakai prompt_toolkit di sebagian build Termux)
 if ! python3 -c "import pyexpat" >/dev/null 2>&1; then
   echo "PERINGATAN: pyexpat bermasalah. Jalankan: pkg reinstall python"
