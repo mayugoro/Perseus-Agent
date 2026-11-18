@@ -124,6 +124,10 @@ perseus -c "ngobrol kopi"          # title sesi
 perseus -c 20261118               # awalan id (yang terbaru cocok)
 perseus -resume 20261118-204418-715
 perseus -c <id> -p "lanjutkan tugas tadi"
+
+perseus sessions                   # daftar sesi dari shell
+perseus sessions <id|title>        # detail + 6 pesan terakhir
+perseus resume <id|title>          # langsung lanjut sesi
 ```
 
 File JSONL lama di `~/.perseus/sessions/` dimigrasikan otomatis sekali saat

@@ -281,8 +281,9 @@ def main() -> int:
     ap.add_argument("--mode", choices=["ask", "auto", "read-only"])
     ap.add_argument("--model")
     ap.add_argument("--workspace")
-    ap.add_argument("command", nargs="?", choices=["model", "setup"],
-                    help="model = ubah provider/model/API key")
+    ap.add_argument("command", nargs="?", choices=["model", "setup", "sessions", "resume"],
+                    help="model | setup | sessions | resume")
+    ap.add_argument("rest", nargs="*", help="argumen untuk command")
     ap.add_argument("-c", "-resume", "--resume", dest="resume", metavar="SESI",
                     help="lanjutkan sesi (id atau awalan id)")
     ap.add_argument("--init", action="store_true", help="buat config default")
@@ -290,6 +291,37 @@ def main() -> int:
     a = ap.parse_args()
 
     cfg = cfgmod.load()
+
+    if a.command == "sessions":
+        q = " ".join(a.rest).strip()
+        if q:
+            sid = sess.resolve(q)
+            if sid:
+                st = sess.stats(sid)
+                print(f"session : {st['id']}")
+                print(f"title   : {st['title'] or '-'}")
+                print(f"waktu   : {sess.fmt_time(st['created'])} → {sess.fmt_time(st['updated'])}")
+                print(f"isi     : {st['turns']} turn · {st['total']} pesan · model {st['model'] or '-'}")
+                print(f"resume  : perseus resume {st['id']}")
+                show_history(sess.load(sid))
+            else:
+                rows = sess.search(q)
+                if not rows:
+                    print("(tidak ada sesi yang cocok)")
+                for r in rows:
+                    print(f"- {sess.fmt_time(r['updated'])} · {r['title'] or r['id']}\n  {r['snippet']}")
+            return 0
+        rows = sess.list_sessions()
+        if not rows:
+            print("(belum ada sesi)")
+        for i, r in enumerate(rows, 1):
+            print(f"{i:>2}. {sess.fmt_time(r['updated'])} · {r['turns']} turn · "
+                  f"{r['total']} pesan · {r['title'] or '(tanpa judul)'} · {r['id']}")
+        print("\nLihat: perseus sessions <id|title> · Lanjut: perseus resume <id|title>")
+        return 0
+
+    if a.command == "resume":
+        a.resume = " ".join(a.rest).strip() or None
     if a.mode:
         cfg["permission"] = a.mode
     if a.model:
