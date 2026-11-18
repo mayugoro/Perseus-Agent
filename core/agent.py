@@ -348,7 +348,7 @@ class Agent:
                 if recent_calls.count(sig) >= 3:
                     result = ("DITOLAK: panggilan tool yang sama sudah 3x. "
                               "Jangan ulangi; gunakan hasil sebelumnya atau jawab.")
-                    print(f"  {self.prefix}\033[33m⟡ {name} (loop terdeteksi, dilewati)\033[0m")
+                    print(f"  {self.prefix}\033[33m</{name}> (loop terdeteksi, dilewati)\033[0m")
                 else:
                     ts = threading.Event()
                     if stream and sys.stdout.isatty():
@@ -363,7 +363,7 @@ class Agent:
                         result = self.registry.call(name, args)
                     ts.set()
                     time.sleep(0.02)
-                    print(f"  {self.prefix}\033[36m⟡ {name}\033[0m {json.dumps(args, ensure_ascii=False)[:160]}")
+                    print(f"  {self.prefix}\033[36m</{name}>\033[0m {json.dumps(args, ensure_ascii=False)[:160]}")
                 if name == "memory_save" and result.startswith("OK"):
                     saved_mem = True
                 self.messages.append({"role": "tool", "tool_call_id": call.get("id", ""),

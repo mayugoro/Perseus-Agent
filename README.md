@@ -57,7 +57,7 @@ export PERSEUS_API_KEY='...'
 
 - Pesan Perseus dan garis pemisah antar-turn berwarna cyan/biru (sama dengan logo).
 - Blok `[think]` tetap abu-abu/dim.
-- Tool call ditandai `⟡` biru.
+- Tool call ditandai `</tool>` biru.
 - Prompt `❯` dengan status bar: model, pemakaian context, durasi respons,
   durasi sesi, dan hint `/ commands · @ files · ! shell`.
 - Batas context diambil otomatis dari `context_length` di `GET /models`
