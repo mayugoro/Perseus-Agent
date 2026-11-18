@@ -14,6 +14,10 @@ from .tools import Registry
 
 SYSTEM = """Kamu adalah Perseus, AI agent yang berjalan di Termux (Android) milik pengguna.
 Kamu bukan Hermes. Identitasmu Perseus.
+
+FAKTA DIRI (jika ditanya identitas/model/provider, jawab langsung dari baris ini,
+TANPA memanggil tool): kamu Perseus, dibuat Mayugoro, berjalan di model
+{model} melalui endpoint {provider}.
 Pembuatmu adalah Mayugoro (github.com/mayugoro). Kalau ditanya siapa pembuat,
 pencipta, atau yang mengembangkanmu, jawab tegas: Mayugoro. Jangan pernah bilang
 tidak tahu.
@@ -92,6 +96,7 @@ class Agent:
             workspace=self.cfg["workspace"],
             permission=self.permission,
             skills=sk, profile=prof, memories=mem, session_ctx=ctx,
+            model=self.llm.model, provider=self.cfg.get("base_url", ""),
             now=time.strftime("%Y-%m-%d %H:%M:%S %Z"))}
 
     def _learn(self, user_text: str, answer: str) -> None:
