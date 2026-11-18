@@ -172,6 +172,8 @@ boleh mendelegasikan lagi (anti-rekursif).
   `android_uninstall`, `android_launch`, `android_logcat`
 - **Skill**: `skill_list`, `skill_view` (folder `skills/*.md`)
   - `android-apps`, `android-logs`, `android-files`, `android-build`, `termux-device`
+  - `android-root`, `android-magisk`, `android-lsposed`, `android-frida`,
+    `android-network`, `android-system`, `android-backup`, `termux-services`
 
 ## Keamanan
 
