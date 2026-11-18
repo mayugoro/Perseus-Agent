@@ -102,7 +102,8 @@ Sesi disimpan di **SQLite + FTS5**: `~/.perseus/state.db`
 
 - `/sessions` — daftar sesi (waktu, turn, jumlah pesan, cuplikan)
 - `/sessions <kata>` — cari isi percakapan lewat FTS5
-- `/resume N` / `/resume <id>` / `/resume <title>` — muat konteks sesi
+- `/resume N` / `/resume <id>` / `/resume <title>` — muat konteks sesi dan
+  tampilkan 6 pesan terakhir (kamu/perseus)
 - `/title <teks>` — atur judul sesi (tampil di `/sessions` dan `/exit`)
 - `/session` — ID sesi aktif
 - Saat `/exit`, Perseus menampilkan ringkasan sesi + perintah resume
@@ -112,6 +113,7 @@ Resume dari shell:
 ```bash
 perseus -c 20261118-204418-715     # id penuh
 perseus -c "ngobrol kopi"          # title sesi
+# saat resume, 6 pesan terakhir ikut ditampilkan
 perseus -c 20261118               # awalan id (yang terbaru cocok)
 perseus -resume 20261118-204418-715
 perseus -c <id> -p "lanjutkan tugas tadi"

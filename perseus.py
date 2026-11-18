@@ -130,6 +130,22 @@ def divider() -> None:
     print(f"\033[36m{'─' * w}\033[0m")
 
 
+def show_history(msgs: list, limit: int = 6) -> None:
+    tail = [m for m in msgs if (m.get("content") or "").strip()][-limit:]
+    if not tail:
+        return
+    divider()
+    for m in tail:
+        text = str(m.get("content", "")).strip().replace("\n", " ")
+        if len(text) > 300:
+            text = text[:300] + "…"
+        if m.get("role") == "user":
+            print(f"  kamu   : {text}")
+        else:
+            print(f"\033[36m  perseus: {text}\033[0m")
+    divider()
+
+
 def run_show(agent: Agent, text: str) -> str:
     out = agent.run(text)
     if not agent.last_streamed:
@@ -268,6 +284,7 @@ def main() -> int:
         agent.messages = msgs
         print(f"resume sesi {sid} · {st['turns']} turn · {st['total']} pesan · "
               f"{sess.fmt_time(st['updated'])}")
+        show_history(msgs)
 
     if a.prompt:
         run_show(agent, a.prompt)
@@ -441,6 +458,7 @@ def main() -> int:
                 agent.session_id = sid
                 print(f"resume: {st['title'] or sid} · {sess.fmt_time(st['updated'])} · "
                       f"{st['turns']} turn · {len(msgs)} pesan")
+                show_history(msgs)
                 continue
             rows = sess.list_sessions()
             if not rows:
