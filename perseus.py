@@ -116,6 +116,8 @@ def main() -> int:
     ap.add_argument("--workspace")
     ap.add_argument("command", nargs="?", choices=["model", "setup"],
                     help="model = ubah provider/model/API key")
+    ap.add_argument("-c", "-resume", "--resume", dest="resume", metavar="SESI",
+                    help="lanjutkan sesi (id atau awalan id)")
     ap.add_argument("--init", action="store_true", help="buat config default")
     ap.add_argument("--show-config", action="store_true")
     a = ap.parse_args()
@@ -153,6 +155,18 @@ def main() -> int:
 
     agent = Agent(cfg, confirm=make_confirm())
 
+    if a.resume:
+        sid = sess.resolve(a.resume)
+        if not sid:
+            print(f"{C['r']}Sesi '{a.resume}' tidak ditemukan.{C['0']}")
+            return 2
+        msgs = sess.load(sid)
+        st = sess.stats(sid)
+        agent.session_id = sid
+        agent.messages = msgs
+        print(f"resume sesi {sid} · {st['turns']} turn · {st['total']} pesan · "
+              f"{sess.fmt_time(st['updated'])}")
+
     if a.prompt:
         print(agent.run(a.prompt))
         return 0
@@ -168,6 +182,13 @@ def main() -> int:
         if not line:
             continue
         if line in ("/exit", "/quit", "exit", "quit"):
+            st = sess.stats(agent.session_id) if agent.session_id else None
+            if st:
+                print(f"\nsession : {st['id']}")
+                print(f"waktu   : {sess.fmt_time(st['created'])} → {sess.fmt_time(st['updated'])}")
+                print(f"isi     : {st['turns']} turn · {st['total']} pesan · model {st['model'] or '-'}")
+                print(f"db      : {sess.DB}")
+                print(f"resume  : perseus -c {st['id']}")
             break
         if line == "/help":
             print("/tools  daftar tool\n/new    reset percakapan\n/mode ask|auto|read-only"

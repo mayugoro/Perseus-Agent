@@ -87,6 +87,16 @@ Sesi disimpan di **SQLite + FTS5**: `~/.perseus/state.db`
 - `/sessions <kata>` — cari isi percakapan lewat FTS5
 - `/resume N` — muat konteks sesi ke-N
 - `/session` — ID sesi aktif
+- Saat `/exit`, Perseus menampilkan ringkasan sesi + perintah resume
+
+Resume dari shell:
+
+```bash
+perseus -c 20261118-204418-715     # id penuh
+perseus -c 20261118               # awalan id (yang terbaru cocok)
+perseus -resume 20261118-204418-715
+perseus -c <id> -p "lanjutkan tugas tadi"
+```
 
 File JSONL lama di `~/.perseus/sessions/` dimigrasikan otomatis sekali saat
 pertama kali DB dibuka, lalu tidak ditulis lagi.

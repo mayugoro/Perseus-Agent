@@ -143,5 +143,27 @@ def search(query: str, limit: int = 10) -> list[dict]:
     return [{"id": r[0], "updated": r[1], "title": r[2], "snippet": r[3]} for r in rows]
 
 
+def resolve(prefix: str) -> str | None:
+    c = _conn()
+    rows = c.execute("SELECT id FROM sessions WHERE id LIKE ? ORDER BY updated DESC LIMIT 1",
+                     (prefix + "%",)).fetchall()
+    c.close()
+    return rows[0][0] if rows else None
+
+
+def stats(sid: str) -> dict | None:
+    c = _conn()
+    r = c.execute("""
+        SELECT s.id,s.created,s.updated,s.title,s.model,s.provider,
+          (SELECT COUNT(*) FROM messages m WHERE m.session_id=s.id AND m.role='user'),
+          (SELECT COUNT(*) FROM messages m WHERE m.session_id=s.id)
+        FROM sessions s WHERE s.id=?""", (sid,)).fetchone()
+    c.close()
+    if not r:
+        return None
+    return {"id": r[0], "created": r[1], "updated": r[2], "title": r[3],
+            "model": r[4], "provider": r[5], "turns": r[6], "total": r[7]}
+
+
 def fmt_time(ts: float) -> str:
     return time.strftime("%Y-%m-%d %H:%M", time.localtime(ts))
