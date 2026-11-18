@@ -56,6 +56,11 @@ export PERSEUS_API_KEY='...'
 - Pesan Perseus dan garis pemisah antar-turn berwarna cyan/biru (sama dengan logo).
 - Blok `[think]` tetap abu-abu/dim.
 - Tool call ditandai `⟡` biru.
+- Prompt `❯` dengan status bar: model, pemakaian context, durasi respons,
+  durasi sesi, dan hint `/ commands · @ files · ! shell`.
+- `/usage` menampilkan token perkiraan, context, durasi, reasoning, steps.
+- `!perintah` menjalankan shell langsung; `@file` melampirkan isi file dari
+  workspace ke pesan.
 
 ## Perintah REPL
 

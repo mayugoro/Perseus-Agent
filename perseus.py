@@ -6,6 +6,7 @@ import argparse
 import getpass
 import json
 import sys
+import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -24,7 +25,7 @@ SLASH = [
     ("/reasoning", "default | low | medium | high"), ("/think", "toggle blok thinking"),
     ("/learn", "toggle auto-learn ke memory"), ("/queue", "antrean tugas"),
     ("/agents", "subagent paralel"), ("/steps", "batas langkah tool"),
-    ("/sessions", "daftar / cari sesi"), ("/resume", "lanjutkan sesi"),
+    ("/usage", "token & durasi sesi"), ("/sessions", "daftar / cari sesi"), ("/resume", "lanjutkan sesi"),
     ("/title", "atur judul sesi"),
     ("/session", "info sesi aktif"), ("/exit", "keluar"),
 ]
@@ -50,7 +51,53 @@ def banner(cfg: dict) -> None:
           f"{C['y']}/exit{C['0']} keluar\n")
 
 
-def build_prompt():
+STATUS = {}
+
+
+def est_tokens(agent: Agent) -> int:
+    chars = sum(len(str(m.get("content") or "")) for m in agent.messages)
+    return max(0, chars // 4)
+
+
+def status_line() -> str:
+    agent = STATUS.get("agent")
+    cfg = STATUS.get("cfg", {})
+    if not agent:
+        return ""
+    limit = int(cfg.get("context_length", 128000))
+    tok = est_tokens(agent)
+    pct = min(100, int(tok * 100 / max(1, limit)))
+    fill = min(10, pct // 10)
+    bar = "█" * fill + "░" * (10 - fill)
+    dur = int(time.time() - STATUS.get("start", time.time()))
+    model = str(agent.llm.model).split("/")[-1]
+    last = agent.last_elapsed
+    return (f" ☤ {model} · ctx {pct}% [{bar}] {tok//1000}k/{limit//1000}k"
+            f" · {last:.0f}s · ⏲ {dur}s    / commands · @ files · ! shell")
+
+
+def welcome() -> None:
+    print("Welcome to Perseus! Type your message or /help for commands.")
+    print("✦ Tip: /usage shows token usage, context, and session duration.\n")
+
+
+def cmd_usage(agent: Agent, cfg: dict) -> None:
+    st = sess.stats(agent.session_id) if agent.session_id else None
+    tok = est_tokens(agent)
+    limit = int(cfg.get("context_length", 128000))
+    dur = int(time.time() - STATUS.get("start", time.time()))
+    print(f"model     : {agent.llm.model}")
+    print(f"provider  : {cfg.get('base_url')}")
+    if st:
+        print(f"session   : {st['id']} ({st['title'] or '-'})")
+        print(f"turns     : {st['turns']} · pesan: {st['total']}")
+    print(f"context   : ~{tok} token / {limit} ({min(100, tok*100//max(1,limit))}%)")
+    print(f"durasi    : {dur}s · respons terakhir {agent.last_elapsed:.1f}s")
+    print(f"reasoning : {cfg.get('reasoning_effort') or 'default'} · steps: "
+          f"{'unlimited' if agent.max_steps <= 0 else agent.max_steps}")
+
+
+def build_prompt(get_status=None):
     """PromptSession dengan completion; None kalau bukan TTY/tanpa prompt_toolkit."""
     if not sys.stdin.isatty():
         return None
@@ -86,8 +133,10 @@ def build_prompt():
 
         hist = Path.home() / ".perseus" / "history"
         hist.parent.mkdir(parents=True, exist_ok=True)
-        return PromptSession("perseus> ", completer=SlashCompleter(),
+        from prompt_toolkit.formatted_text import ANSI
+        return PromptSession(ANSI("\033[36m❯\033[0m "), completer=SlashCompleter(),
                              complete_while_typing=True,
+                             bottom_toolbar=get_status,
                              history=FileHistory(str(hist)))
     except Exception as e:
         globals()["_PT_ERROR"] = f"{type(e).__name__}: {e}"
@@ -291,8 +340,10 @@ def main() -> int:
         return 0
 
     banner(cfg)
+    welcome()
+    STATUS.update(agent=agent, cfg=cfg, start=time.time())
     _PT_ERROR = "bukan TTY" if not sys.stdin.isatty() else ""
-    ps = build_prompt()
+    ps = build_prompt(status_line)
     if ps:
         print(f"  completion: aktif — ketik / untuk daftar perintah\n")
     else:
@@ -308,7 +359,8 @@ def main() -> int:
             if ps:
                 line = ps.prompt().strip()
             else:
-                line = input(f"{C['c']}perseus>{C['0']} ").strip()
+                print(f"\033[2m{status_line()}\033[0m")
+                line = input(f"{C['c']}❯{C['0']} ").strip()
         except (EOFError, KeyboardInterrupt):
             print()
             break
@@ -324,6 +376,30 @@ def main() -> int:
                 print(f"db      : {sess.DB}")
                 print(f"resume  : perseus -c {st['id']}")
             break
+        if line == "/usage":
+            cmd_usage(agent, cfg)
+            continue
+        if line.startswith("!"):
+            cmd = line[1:].strip()
+            if not cmd:
+                continue
+            if agent.registry.confirm_needed("shell", {"command": cmd}) and agent.permission == "ask":
+                ok = make_confirm()("shell", {"command": cmd})
+                if not ok:
+                    continue
+            print(agent.registry.call("shell", {"command": cmd}))
+            continue
+        if line.startswith("@"):
+            target = line[1:].strip()
+            try:
+                pth = agent.registry.resolve(target)
+                content = pth.read_text(errors="replace")[:40000]
+                line = f"Isi file {target}:\n```\n{content}\n```\n\nApa yang perlu dilakukan?"
+                print(f"\033[2m[file] {target} ({len(content)} chars)\033[0m")
+                divider()
+            except Exception as e:
+                print(f"(gagal baca file: {e})")
+                continue
         if line == "/":
             for cmd, desc in SLASH:
                 print(f"  {cmd:<12} {desc}")

@@ -53,6 +53,7 @@ class Agent:
         self.log = log
         self.session_id = None
         self.last_streamed = False
+        self.last_elapsed = 0.0
         if log:
             self.session_id = session.new_session(cfg)
 
@@ -125,10 +126,18 @@ class Agent:
         sys.stdout.flush()
 
     def run(self, user_text: str, stream: bool = True) -> str:
+        t0 = time.time()
+        try:
+            return self._run(user_text, stream)
+        finally:
+            self.last_elapsed = time.time() - t0
+
+    def _run(self, user_text: str, stream: bool = True) -> str:
         self.messages.append({"role": "user", "content": user_text})
         self._record({"role": "user", "content": user_text})
         tools = self.registry.schema()
         self.last_streamed = False
+        self.last_elapsed = 0.0
 
         self._compact()
         saved_mem = False
