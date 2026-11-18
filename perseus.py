@@ -279,11 +279,18 @@ def show_history(msgs: list, limit: int = 6) -> None:
     if not tail:
         return
     divider()
+    # gabung baris berurutan dengan role sama (hasil multi-step tool)
+    merged = []
     for m in tail:
         text = str(m.get("content", "")).strip().replace("\n", " ")
-        if len(text) > 300:
-            text = text[:300] + "…"
-        if m.get("role") == "user":
+        role = "you" if m.get("role") == "user" else "perseus"
+        if merged and merged[-1][0] == role:
+            prev = merged[-1][1]
+            merged[-1] = (role, (prev + " · " + text)[:300])
+        else:
+            merged.append((role, text[:300]))
+    for role, text in merged:
+        if role == "you":
             print(f"  you    : {text}")
         else:
             print(f"\033[36m  perseus: {text}\033[0m")
