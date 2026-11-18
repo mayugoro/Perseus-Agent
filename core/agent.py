@@ -139,7 +139,7 @@ class Agent:
             stop = threading.Event()
             if stream and sys.stdout.isatty():
                 threading.Thread(target=self._spinner, args=(stop,), daemon=True).start()
-            state = {"reason": False}
+            state = {"reason": False, "blue": False}
 
             def on_first():
                 stop.set()
@@ -157,6 +157,9 @@ class Agent:
                 if state["reason"]:
                     sys.stdout.write("\033[0m\n")
                     state["reason"] = False
+                if not state["blue"]:
+                    sys.stdout.write("\033[36m")
+                    state["blue"] = True
                 self.last_streamed = True
                 sys.stdout.write(chunk)
                 sys.stdout.flush()
@@ -177,6 +180,9 @@ class Agent:
                 if state["reason"]:
                     sys.stdout.write("\033[0m\n")
                     state["reason"] = False
+                if state["blue"]:
+                    sys.stdout.write("\033[0m")
+                    state["blue"] = False
 
             content = msg.get("content") or ""
             calls = msg.get("tool_calls") or []

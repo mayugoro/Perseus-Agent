@@ -124,6 +124,12 @@ def setup_readline() -> bool:
         return False
 
 
+def divider() -> None:
+    import shutil
+    w = max(30, min(64, shutil.get_terminal_size((64, 20)).columns - 2))
+    print(f"\033[36m{'─' * w}\033[0m")
+
+
 def run_show(agent: Agent, text: str) -> str:
     out = agent.run(text)
     if not agent.last_streamed:
@@ -526,6 +532,7 @@ def main() -> int:
                 print(f"ditambahkan ke antrean (#{n})")
             continue
         try:
+            divider()
             run_show(agent, line)
         except KeyboardInterrupt:
             print("\n(dibatalkan)")

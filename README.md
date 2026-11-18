@@ -51,6 +51,12 @@ di situ, atau dikosongkan dan pakai environment:
 export PERSEUS_API_KEY='...'
 ```
 
+## Tampilan
+
+- Pesan Perseus dan garis pemisah antar-turn berwarna cyan/biru (sama dengan logo).
+- Blok `[think]` tetap abu-abu/dim.
+- Tool call ditandai `⟡` biru.
+
 ## Perintah REPL
 
 Ketik `/` — daftar perintah muncul otomatis (completion `prompt_toolkit`,
