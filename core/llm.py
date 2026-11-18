@@ -12,12 +12,14 @@ class LLMError(RuntimeError):
 
 class LLM:
     def __init__(self, base_url: str, api_key: str, model: str,
-                 max_tokens: int = 4096, timeout: int = 180):
+                 max_tokens: int = 4096, timeout: int = 180,
+                 reasoning_effort: str = ""):
         self.base_url = base_url.rstrip("/")
         self.api_key = api_key
         self.model = model
         self.max_tokens = max_tokens
         self.timeout = timeout
+        self.reasoning_effort = reasoning_effort
 
     def _post(self, path: str, body: dict) -> dict:
         if not self.api_key:
@@ -70,6 +72,8 @@ class LLM:
             "messages": messages,
             "max_tokens": self.max_tokens,
         }
+        if self.reasoning_effort:
+            body["reasoning_effort"] = self.reasoning_effort
         if tools:
             body["tools"] = tools
             body["tool_choice"] = "auto"

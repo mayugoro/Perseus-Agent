@@ -56,14 +56,18 @@ export PERSEUS_API_KEY='...'
 /tools                     daftar tool
 /new                       reset percakapan
 /mode ask|auto|read-only   mode izin
-/model [id]                lihat provider + pilih model
+/model [id]                lihat provider + pilih model + reasoning
 /queue [tugas|run|rm N|clear]  antrean tugas
+/reasoning [level]         default|low|medium|high
 /agents [on|off|max N]     subagent paralel
 /exit
 ```
 
 `/model` tanpa argumen menampilkan provider, model aktif, dan daftar model dari
-endpoint `/v1/models`; pilih nomor atau ketik id sendiri.
+endpoint `/v1/models`; pilih nomor atau ketik id sendiri. Setelah model dipilih,
+wizard menanyakan level reasoning (`default/low/medium/high`) yang dikirim sebagai
+`reasoning_effort` — hanya untuk model yang mendukung. Bisa juga langsung:
+`/reasoning high`.
 
 `/queue <tugas>` menambah tugas, `/queue` melihat daftar, `/queue run`
 menjalankannya berurutan (sesi sama), `/queue rm N` dan `/queue clear` mengelola.

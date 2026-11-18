@@ -35,6 +35,13 @@ def save(text: str) -> int:
     return mid
 
 
+def recent(limit: int = 5) -> list[tuple[int, str]]:
+    c = _conn()
+    rows = c.execute("SELECT id,text FROM notes ORDER BY id DESC LIMIT ?", (limit,)).fetchall()
+    c.close()
+    return rows
+
+
 def search(query: str, limit: int = 5) -> list[tuple[int, str]]:
     c = _conn()
     rows = []

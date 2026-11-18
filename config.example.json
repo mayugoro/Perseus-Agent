@@ -12,5 +12,8 @@
     "enabled": true,
     "max_parallel": 3,
     "permission": "auto"
-  }
+  },
+  "show_reasoning": true,
+  "context_messages": 36,
+  "reasoning_effort": ""
 }

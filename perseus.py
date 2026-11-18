@@ -31,7 +31,7 @@ def banner(cfg: dict) -> None:
     print(f"  {C['b']}Perseus{C['0']} · Termux AI Agent")
     print(f"  model     : {cfg['model']}")
     print(f"  provider  : {cfg['base_url']}")
-    print(f"  mode      : {cfg['permission']}")
+    print(f"  mode      : {cfg['permission']} · reasoning: {cfg.get('reasoning_effort') or 'default'}")
     print(f"  workspace : {cfg['workspace']}")
     print(f"  {C['y']}/help{C['0']} bantuan · {C['y']}/tools{C['0']} daftar tool · "
           f"{C['y']}/exit{C['0']} keluar\n")
@@ -146,7 +146,7 @@ def main() -> int:
             break
         if line == "/help":
             print("/tools  daftar tool\n/new    reset percakapan\n/mode ask|auto|read-only"
-                  "\n/model [id]  ganti/daftar model\n/queue [tugas|run|rm N|clear]  antrean tugas\n/agents [on|off|max N]  subagent paralel\n/exit   keluar")
+                  "\n/model [id]  ganti/daftar model\n/think  tampilkan/sembunyikan reasoning\n/queue [tugas|run|rm N|clear]  antrean tugas\n/agents [on|off|max N]  subagent paralel\n/exit   keluar")
             continue
         if line == "/tools":
             show_tools(agent)
@@ -190,10 +190,36 @@ def main() -> int:
                     m = choice
             else:
                 m = line.split(None, 1)[1].strip()
+            if line == "/model" and m:
+                r = input("Reasoning [default/low/medium/high] (Enter=pertahankan): ").strip().lower()
+                if r in ("default", "low", "medium", "high"):
+                    v = "" if r == "default" else r
+                    agent.llm.reasoning_effort = v
+                    cfg["reasoning_effort"] = v
+                    cfgmod.save(cfg)
+                    print(f"reasoning={r}")
             agent.llm.model = m
             cfg["model"] = m
             cfgmod.save(cfg)
             print(f"model={m}")
+            continue
+        if line.startswith("/reasoning"):
+            v = line.split(None, 1)[1].strip().lower() if " " in line else ""
+            if v in ("default", "low", "medium", "high"):
+                val = "" if v == "default" else v
+                agent.llm.reasoning_effort = val
+                cfg["reasoning_effort"] = val
+                cfgmod.save(cfg)
+                print(f"reasoning={v}")
+            else:
+                print(f"reasoning sekarang: {cfg.get('reasoning_effort') or 'default'}")
+                print("ubah: /reasoning default|low|medium|high")
+            continue
+        if line == "/think":
+            agent.show_reasoning = not agent.show_reasoning
+            cfg["show_reasoning"] = agent.show_reasoning
+            cfgmod.save(cfg)
+            print(f"think={'on' if agent.show_reasoning else 'off'}")
             continue
         if line == "/agents" or line.startswith("/agents "):
             sub = cfg.setdefault("subagents", {"enabled": True, "max_parallel": 3, "permission": "auto"})

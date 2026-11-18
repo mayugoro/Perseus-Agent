@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Callable
 
 from . import memory
+from . import skills as sk
 
 DESTRUCTIVE = [
     r"\brm\s+-[a-z]*r[a-z]*f?\s+/(\s|$)", r"\bmkfs\b", r"\bdd\s+.*of=/dev/",
@@ -183,6 +184,11 @@ class Registry:
                  {"type": "object", "properties": {"name": {"type": "string"}},
                   "required": ["name"]}, self.t_skill_view)
 
+        self.add("skill_save", "Simpan/perbarui skill markdown agar dipakai di sesi berikutnya.",
+                 {"type": "object", "properties": {
+                     "name": {"type": "string"}, "content": {"type": "string"}},
+                  "required": ["name", "content"]}, self.t_skill_save, danger=True)
+
     # ---------------------------------------------------------------- impl
     def t_shell(self, command: str, timeout: int | None = None) -> str:
         t = min(int(timeout or self.timeout), 600)
@@ -333,16 +339,11 @@ class Registry:
         return json.dumps(results, ensure_ascii=False, indent=2)
 
     # skills
-    def _skills_dir(self) -> Path:
-        return Path(__file__).resolve().parent.parent / "skills"
-
     def t_skill_list(self) -> str:
-        d = self._skills_dir()
-        return "\n".join(f"- {p.stem}: {p.read_text(errors='replace').splitlines()[0][:100]}"
-                         for p in sorted(d.glob("*.md"))) or "(belum ada skill)"
+        return "\n".join(f"- {n}: {d}" for n, d in sk.list_skills()) or "(belum ada skill)"
 
     def t_skill_view(self, name: str) -> str:
-        p = self._skills_dir() / f"{name}.md"
-        if not p.exists():
-            return f"ERROR: skill '{name}' tidak ada"
-        return p.read_text(errors="replace")
+        return sk.view(name)
+
+    def t_skill_save(self, name: str, content: str) -> str:
+        return "OK skill disimpan: " + sk.save(name, content)

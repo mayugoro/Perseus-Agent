@@ -5,6 +5,7 @@ import json
 import time
 from pathlib import Path
 
+from . import memory, skills
 from .config import api_key
 from .llm import LLM, LLMError
 from .tools import Registry
@@ -19,8 +20,13 @@ Aturan:
 - Sebelum mengubah/menghapus file atau menginstall/menghapus app, jelaskan singkat lalu panggil tool.
 - Path file dibatasi ke workspace: {workspace}
 - Mode izin: {permission}
-- Jawab ringkas, bahasa Indonesia kasual, kecuali diminta lain.
+- Gaya: langsung ke inti, tanpa basa-basi. Selesai = laporan singkat: apa yang
+  berubah, apa yang terverifikasi, apa yang tersisa.
 - Jika tool gagal, laporkan error aslinya dan langkah berikutnya.
+- Skill yang tersedia (pakai skill_view untuk detail):
+{skills}
+- Memori terbaru:
+{memories}
 - Waktu sekarang: {now}
 """
 
@@ -30,9 +36,12 @@ class Agent:
         self.cfg = cfg
         self.registry = Registry(cfg, allow_delegate=allow_delegate)
         self.llm = LLM(cfg["base_url"], api_key(cfg), cfg["model"],
-                       int(cfg.get("max_tokens", 4096)), int(cfg.get("timeout", 180)))
+                       int(cfg.get("max_tokens", 4096)), int(cfg.get("timeout", 180)),
+                       cfg.get("reasoning_effort", ""))
         self.confirm = confirm or (lambda name, args: False)
         self.permission = cfg.get("permission", "ask")
+        self.show_reasoning = bool(cfg.get("show_reasoning", True))
+        self.context_messages = int(cfg.get("context_messages", 36))
         self.max_steps = int(cfg.get("max_steps", 8))
         self.messages: list[dict] = []
         self.log = log
@@ -43,10 +52,29 @@ class Agent:
             self.session_file = d / (time.strftime("%Y%m%d-%H%M%S") + ".jsonl")
 
     def _system(self) -> dict:
+        sk = "\n".join(f"  - {n}: {d}" for n, d in skills.list_skills()) or "  (belum ada)"
+        mem = "\n".join(f"  - {t[:160]}" for _, t in memory.recent(5)) or "  (kosong)"
         return {"role": "system", "content": SYSTEM.format(
             workspace=self.cfg["workspace"],
             permission=self.permission,
+            skills=sk, memories=mem,
             now=time.strftime("%Y-%m-%d %H:%M:%S %Z"))}
+
+    def _compact(self) -> None:
+        if len(self.messages) <= self.context_messages:
+            return
+        old = self.messages[:-12]
+        tail = self.messages[-12:]
+        try:
+            r = self.llm.chat([
+                {"role": "system", "content": "Ringkas percakapan berikut jadi catatan padat: "
+                 "tujuan, keputusan, file/perintah penting, hasil. Bahasa Indonesia."},
+                {"role": "user", "content": json.dumps(old, ensure_ascii=False)[:24000]},
+            ])
+            summary = (r.get("content") or "").strip()
+        except Exception:
+            summary = "(ringkasan lama tidak tersedia)"
+        self.messages = [{"role": "system", "content": "Ringkasan percakapan sebelumnya:\n" + summary}] + tail
 
     def _record(self, obj: dict) -> None:
         if self.session_file:
@@ -61,12 +89,16 @@ class Agent:
         self._record({"role": "user", "content": user_text})
         tools = self.registry.schema()
 
+        self._compact()
         for step in range(self.max_steps):
             try:
                 msg = self.llm.chat([self._system()] + self.messages[-40:], tools)
             except LLMError as e:
                 return f"[provider error] {e}"
 
+            rc = msg.get("reasoning_content") or msg.get("reasoning")
+            if rc and self.show_reasoning:
+                print(f"\033[2m[think] {str(rc)[:600]}\033[0m")
             content = msg.get("content") or ""
             calls = msg.get("tool_calls") or []
             self.messages.append(msg)
