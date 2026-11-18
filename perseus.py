@@ -88,7 +88,8 @@ def build_prompt():
         return PromptSession("perseus> ", completer=SlashCompleter(),
                              complete_while_typing=True,
                              history=FileHistory(str(hist)))
-    except Exception:
+    except Exception as e:
+        globals()["_PT_ERROR"] = f"{type(e).__name__}: {e}"
         return None
 
 
@@ -236,7 +237,14 @@ def main() -> int:
         return 0
 
     banner(cfg)
+    _PT_ERROR = "bukan TTY" if not sys.stdin.isatty() else ""
     ps = build_prompt()
+    if ps:
+        print(f"  completion: aktif — ketik / untuk daftar perintah\n")
+    else:
+        err = globals().get("_PT_ERROR") or _PT_ERROR or "prompt_toolkit tidak tersedia"
+        print(f"  completion: off ({err})"
+              f" — ketik / lalu Enter untuk daftar\n")
 
     while True:
         try:
@@ -258,6 +266,11 @@ def main() -> int:
                 print(f"db      : {sess.DB}")
                 print(f"resume  : perseus -c {st['id']}")
             break
+        if line == "/":
+            for cmd, desc in SLASH:
+                print(f"  {cmd:<12} {desc}")
+            print()
+            continue
         if line == "/help":
             print("/tools  daftar tool\n/new    reset percakapan\n/mode ask|auto|read-only"
                   "\n/model [id]  ganti/daftar model\n/think  tampilkan/sembunyikan reasoning\n/queue [tugas|run|rm N|clear]  antrean tugas\n/agents [on|off|max N]  subagent paralel\n/exit   keluar")
