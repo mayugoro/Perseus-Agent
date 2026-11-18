@@ -47,6 +47,13 @@ class Agent:
                        int(cfg.get("max_tokens", 4096)), int(cfg.get("timeout", 180)),
                        cfg.get("reasoning_effort", ""),
                        int(cfg.get("retries", 3)), int(cfg.get("retry_delay", 15)))
+        detected = None
+        try:
+            detected = self.llm.model_context()
+        except Exception:
+            pass
+        self.context_length = int(detected or cfg.get("context_length") or 128000)
+        cfg["context_length"] = self.context_length
         self.confirm = confirm or (lambda name, args: False)
         self.permission = cfg.get("permission", "ask")
         self.show_reasoning = bool(cfg.get("show_reasoning", True))

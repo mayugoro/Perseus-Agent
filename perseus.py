@@ -64,7 +64,7 @@ def status_line() -> str:
     cfg = STATUS.get("cfg", {})
     if not agent:
         return ""
-    limit = int(cfg.get("context_length", 128000))
+    limit = int(cfg.get("context_length") or getattr(agent, "context_length", 128000) or 128000)
     tok = est_tokens(agent)
     pct = min(100, int(tok * 100 / max(1, limit)))
     fill = min(10, pct // 10)
@@ -84,7 +84,7 @@ def welcome() -> None:
 def cmd_usage(agent: Agent, cfg: dict) -> None:
     st = sess.stats(agent.session_id) if agent.session_id else None
     tok = est_tokens(agent)
-    limit = int(cfg.get("context_length", 128000))
+    limit = int(cfg.get("context_length") or getattr(agent, "context_length", 128000) or 128000)
     dur = int(time.time() - STATUS.get("start", time.time()))
     print(f"model     : {agent.llm.model}")
     print(f"provider  : {cfg.get('base_url')}")
@@ -257,6 +257,13 @@ def wizard(cfg: dict) -> dict:
         if model:
             cfg["model"] = model
 
+    try:
+        c = LLM(cfg["base_url"], cfgmod.api_key(cfg), cfg["model"]).model_context()
+        if c:
+            cfg["context_length"] = c
+    except Exception:
+        pass
+
     r = input(f"Reasoning [default/low/medium/high, sekarang {cfg.get('reasoning_effort') or 'default'}]: ").strip().lower()
     if r in ("default", "low", "medium", "high"):
         cfg["reasoning_effort"] = "" if r == "default" else r
@@ -412,7 +419,7 @@ def main() -> int:
     while True:
         try:
             if ps:
-                line = ps.prompt(refresh_interval=1.0).strip()
+                line = ps.prompt().strip()
             else:
                 print(f"\033[2m{status_line()}\033[0m")
                 line = input(f"{C['c']}❯{C['0']} ").strip()
@@ -519,8 +526,15 @@ def main() -> int:
                     print(f"reasoning={r}")
             agent.llm.model = m
             cfg["model"] = m
+            try:
+                c = agent.llm.model_context()
+                if c:
+                    agent.context_length = c
+                    cfg["context_length"] = c
+            except Exception:
+                pass
             cfgmod.save(cfg)
-            print(f"model={m}")
+            print(f"model={m} · ctx {cfg.get('context_length', '?')}")
             continue
         if line.startswith("/reasoning"):
             v = line.split(None, 1)[1].strip().lower() if " " in line else ""

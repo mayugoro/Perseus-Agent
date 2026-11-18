@@ -18,5 +18,6 @@
   "reasoning_effort": "high",
   "auto_learn": true,
   "retries": 3,
-  "retry_delay": 15
+  "retry_delay": 15,
+  "context_length": 0
 }

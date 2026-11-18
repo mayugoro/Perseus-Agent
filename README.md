@@ -60,6 +60,10 @@ export PERSEUS_API_KEY='...'
 - Tool call ditandai `⟡` biru.
 - Prompt `❯` dengan status bar: model, pemakaian context, durasi respons,
   durasi sesi, dan hint `/ commands · @ files · ! shell`.
+- Batas context diambil otomatis dari `context_length` di `GET /models`
+  (mis. model 1 juta token tampil `1000k`), bukan angka hardcode.
+- Status bar tidak memaksa refresh tiap detik supaya scroll ke atas tidak
+  terlonjak kembali ke bawah; angka diperbarui saat ada input/turn baru.
 - `/usage` menampilkan token perkiraan, context, durasi, reasoning, steps.
 - `!perintah` menjalankan shell langsung; `@file` melampirkan isi file dari
   workspace ke pesan.

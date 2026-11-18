@@ -70,7 +70,7 @@ class LLM:
                 raise last from None
         raise last or LLMError("request gagal")
 
-    def list_models(self) -> list[str]:
+    def models_info(self) -> list[dict]:
         req = urllib.request.Request(
             self.base_url + "/models",
             headers={
@@ -86,12 +86,20 @@ class LLM:
             raise LLMError(f"HTTP {e.code}: {e.read()[:300].decode('utf-8', 'replace')}") from None
         except Exception as e:
             raise LLMError(f"request gagal: {e}") from None
-        out = []
-        for m in data.get("data", []) if isinstance(data, dict) else []:
-            mid = m.get("id") if isinstance(m, dict) else None
-            if mid:
-                out.append(mid)
-        return out
+        return [m for m in (data.get("data", []) if isinstance(data, dict) else [])
+                if isinstance(m, dict) and m.get("id")]
+
+    def list_models(self) -> list[str]:
+        return [m["id"] for m in self.models_info()]
+
+    def model_context(self) -> int | None:
+        for m in self.models_info():
+            if m.get("id") == self.model:
+                for k in ("context_length", "max_context_length", "context_window"):
+                    v = m.get(k)
+                    if isinstance(v, int) and v > 0:
+                        return v
+        return None
 
     def stream_chat(self, messages: list, tools: list | None = None,
                     on_text=None, on_reasoning=None, on_first=None) -> dict:
