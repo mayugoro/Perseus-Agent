@@ -20,6 +20,7 @@ Aturan:
 - Sebelum mengubah/menghapus file atau menginstall/menghapus app, jelaskan singkat lalu panggil tool.
 - Path file dibatasi ke workspace: {workspace}
 - Mode izin: {permission}
+- Sebelum menjawab: tentukan tujuan, batasan, dan langkah yang perlu; baru jawab/bertindak.
 - Gaya: langsung ke inti, tanpa basa-basi. Selesai = laporan singkat: apa yang
   berubah, apa yang terverifikasi, apa yang tersisa.
 - Jika tool gagal, laporkan error aslinya dan langkah berikutnya.
@@ -41,6 +42,7 @@ class Agent:
         self.confirm = confirm or (lambda name, args: False)
         self.permission = cfg.get("permission", "ask")
         self.show_reasoning = bool(cfg.get("show_reasoning", True))
+        self.auto_learn = bool(cfg.get("auto_learn", True))
         self.context_messages = int(cfg.get("context_messages", 36))
         self.max_steps = int(cfg.get("max_steps", 8))
         self.messages: list[dict] = []
@@ -59,6 +61,32 @@ class Agent:
             permission=self.permission,
             skills=sk, memories=mem,
             now=time.strftime("%Y-%m-%d %H:%M:%S %Z"))}
+
+    def _learn(self, user_text: str, answer: str) -> None:
+        if not self.auto_learn:
+            return
+        try:
+            r = self.llm.chat([
+                {"role": "system", "content":
+                 "Ekstrak maksimal 2 fakta tahan lama dari percakapan: preferensi user, "
+                 "konvensi, prosedur, atau keputusan penting. Tulis satu fakta per baris "
+                 "diawali '- '. Jika tidak ada yang layak disimpan, tulis NONE."},
+                {"role": "user", "content": f"USER: {user_text[:3000]}\n\nASSISTANT: {answer[:3000]}"},
+            ])
+        except Exception:
+            return
+        text = (r.get("content") or "").strip()
+        if not text or text.upper().startswith("NONE"):
+            return
+        n = 0
+        for line in text.splitlines():
+            line = line.strip()
+            if line.startswith("- ") and len(line) > 4:
+                memory.save(line[2:].strip())
+                print(f"\033[2m[learn] {line[2:][:160]}\033[0m")
+                n += 1
+                if n >= 2:
+                    break
 
     def _compact(self) -> None:
         if len(self.messages) <= self.context_messages:
@@ -90,6 +118,7 @@ class Agent:
         tools = self.registry.schema()
 
         self._compact()
+        saved_mem = False
         for step in range(self.max_steps):
             try:
                 msg = self.llm.chat([self._system()] + self.messages[-40:], tools)
@@ -105,7 +134,10 @@ class Agent:
             self._record(msg)
 
             if not calls:
-                return content.strip() or "(kosong)"
+                out = content.strip() or "(kosong)"
+                if not saved_mem:
+                    self._learn(user_text, out)
+                return out
 
             for call in calls:
                 fn = call.get("function", {})
@@ -125,6 +157,8 @@ class Agent:
                     result = self.registry.call(name, args)
 
                 print(f"  \033[36m⟡ {name}\033[0m {json.dumps(args, ensure_ascii=False)[:160]}")
+                if name == "memory_save" and result.startswith("OK"):
+                    saved_mem = True
                 self.messages.append({"role": "tool", "tool_call_id": call.get("id", ""),
                                       "name": name, "content": result})
                 self._record({"role": "tool", "name": name, "content": result})

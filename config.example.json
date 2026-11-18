@@ -15,5 +15,6 @@
   },
   "show_reasoning": true,
   "context_messages": 36,
-  "reasoning_effort": ""
+  "reasoning_effort": "",
+  "auto_learn": true
 }

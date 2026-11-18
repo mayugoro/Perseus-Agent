@@ -24,6 +24,10 @@ def _conn() -> sqlite3.Connection:
 
 def save(text: str) -> int:
     c = _conn()
+    row = c.execute("SELECT id FROM notes WHERE text=?", (text,)).fetchone()
+    if row:
+        c.close()
+        return row[0]
     cur = c.execute("INSERT INTO notes(text,created) VALUES (?,?)", (text, time.time()))
     mid = cur.lastrowid
     try:

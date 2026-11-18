@@ -59,6 +59,7 @@ export PERSEUS_API_KEY='...'
 /model [id]                lihat provider + pilih model + reasoning
 /queue [tugas|run|rm N|clear]  antrean tugas
 /reasoning [level]         default|low|medium|high
+/learn                     auto-belajar on/off
 /agents [on|off|max N]     subagent paralel
 /exit
 ```
@@ -72,6 +73,17 @@ wizard menanyakan level reasoning (`default/low/medium/high`) yang dikirim sebag
 `/queue <tugas>` menambah tugas, `/queue` melihat daftar, `/queue run`
 menjalankannya berurutan (sesi sama), `/queue rm N` dan `/queue clear` mengelola.
 Antrean tersimpan di `~/.perseus/queue.json`, jadi tidak hilang saat CLI ditutup.
+
+## Belajar & berpikir
+
+- Sebelum menjawab, Perseus menentukan tujuan/batasan/langkah dulu (dan menampilkan
+  `[think]` bila model mengirim `reasoning_content`; toggle `/think`).
+- `auto_learn` (default on): setelah jawaban selesai, satu panggilan ringan
+  mengekstrak maksimal 2 fakta tahan lama → disimpan ke SQLite. Fakta ini
+  diinjeksi ke system prompt sesi berikutnya. Matikan dengan `/learn`.
+- `skill_save` menyimpan prosedur ke `~/.perseus/skills/`; daftar skill otomatis
+  muncul di system prompt dan dimuat penuh lewat `skill_view`.
+- Percakapan panjang diringkas otomatis (`context_messages`, default 36).
 
 ## Subagent paralel
 

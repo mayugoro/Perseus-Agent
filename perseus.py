@@ -215,6 +215,12 @@ def main() -> int:
                 print(f"reasoning sekarang: {cfg.get('reasoning_effort') or 'default'}")
                 print("ubah: /reasoning default|low|medium|high")
             continue
+        if line == "/learn":
+            agent.auto_learn = not agent.auto_learn
+            cfg["auto_learn"] = agent.auto_learn
+            cfgmod.save(cfg)
+            print(f"learn={'on' if agent.auto_learn else 'off'}")
+            continue
         if line == "/think":
             agent.show_reasoning = not agent.show_reasoning
             cfg["show_reasoning"] = agent.show_reasoning

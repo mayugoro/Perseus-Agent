@@ -21,6 +21,7 @@ DEFAULTS = {
     "api_key_env": "PERSEUS_API_KEY",
     "show_reasoning": True,
     "reasoning_effort": "",
+    "auto_learn": True,
     "context_messages": 36,
     "subagents": {"enabled": True, "max_parallel": 3, "permission": "auto"},
 }
