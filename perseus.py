@@ -632,6 +632,9 @@ def main() -> int:
                 if not choice or choice.startswith("/"):
                     print("(batal)")
                     continue
+                if not models and choice.isdigit():
+                    print("(model list unavailable — type a model id)")
+                    continue
                 if choice.isdigit() and 1 <= int(choice) <= len(models):
                     m = models[int(choice) - 1]
                 else:
