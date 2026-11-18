@@ -241,8 +241,17 @@ def main() -> int:
                 print("ubah: /reasoning default|low|medium|high")
             continue
         if line == "/session":
-            print(f"file: {agent.session_file}")
+            print(f"id: {agent.session_id}")
             print(f"pesan: {len(agent.messages)}")
+            continue
+        if line.startswith("/sessions "):
+            q = line[10:].strip()
+            rows = sess.search(q)
+            if not rows:
+                print("(tidak ada hasil)")
+            else:
+                for r in rows:
+                    print(f"- {sess.fmt_time(r['updated'])} · {r['id']}\n  {r['snippet']}")
             continue
         if line == "/sessions" or line.startswith("/resume"):
             if line.startswith("/resume"):
@@ -252,23 +261,23 @@ def main() -> int:
                     print("format: /resume N  (lihat /sessions)")
                     continue
                 r = rows[int(arg) - 1]
-                msgs = sess.load(r["path"])
+                msgs = sess.load(r["id"])
                 if not msgs:
                     print("(sesi kosong)")
                     continue
                 agent.messages = msgs
-                agent.session_file = r["path"]
-                print(f"resume: {sess.fmt_time(r['mtime'])} · {r['turns']} turn · {len(msgs)} pesan")
+                agent.session_id = r["id"]
+                print(f"resume: {sess.fmt_time(r['updated'])} · {r['turns']} turn · {len(msgs)} pesan")
                 continue
             rows = sess.list_sessions()
             if not rows:
                 print("(belum ada sesi)")
             else:
                 for i, r in enumerate(rows, 1):
-                    active = " *" if agent.session_file == r["path"] else "  "
-                    print(f"{active}{i}. {sess.fmt_time(r['mtime'])} · {r['turns']} turn · "
-                          f"{r['size']//1024} KB · {r['preview']}")
-                print("\n/resume N  lanjutkan sesi")
+                    active = " *" if agent.session_id == r["id"] else "  "
+                    print(f"{active}{i}. {sess.fmt_time(r['updated'])} · {r['turns']} turn · "
+                          f"{r['total']} pesan · {r['preview']}")
+                print("\n/resume N  lanjutkan · /sessions <kata>  cari")
             continue
         if line == "/learn":
             agent.auto_learn = not agent.auto_learn

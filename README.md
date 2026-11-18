@@ -80,10 +80,16 @@ Antrean tersimpan di `~/.perseus/queue.json`, jadi tidak hilang saat CLI ditutup
 
 ## Sesi
 
-Setiap percakapan disimpan otomatis ke `~/.perseus/sessions/*.jsonl`.
-`/sessions` menampilkan daftar (waktu, jumlah turn, cuplikan), `/resume N`
-memuat kembali konteks sesi itu, dan `/session` menunjukkan file aktif.
-Percakapan yang di-resume tetap memakai memory dan skill yang sama.
+Sesi disimpan di **SQLite + FTS5**: `~/.perseus/state.db`
+(tabel `sessions`, `messages`, `messages_fts`).
+
+- `/sessions` — daftar sesi (waktu, turn, jumlah pesan, cuplikan)
+- `/sessions <kata>` — cari isi percakapan lewat FTS5
+- `/resume N` — muat konteks sesi ke-N
+- `/session` — ID sesi aktif
+
+File JSONL lama di `~/.perseus/sessions/` dimigrasikan otomatis sekali saat
+pertama kali DB dibuka, lalu tidak ditulis lagi.
 
 ## Belajar & berpikir
 

@@ -47,9 +47,9 @@ class Agent:
         self.max_steps = int(cfg.get("max_steps", 8))
         self.messages: list[dict] = []
         self.log = log
-        self.session_file = None
+        self.session_id = None
         if log:
-            self.session_file = session.new_file()
+            self.session_id = session.new_session(cfg)
 
     def _system(self) -> dict:
         sk = "\n".join(f"  - {n}: {d}" for n, d in skills.list_skills()) or "  (belum ada)"
@@ -103,9 +103,8 @@ class Agent:
         self.messages = [{"role": "system", "content": "Ringkasan percakapan sebelumnya:\n" + summary}] + tail
 
     def _record(self, obj: dict) -> None:
-        if self.session_file:
-            with self.session_file.open("a") as f:
-                f.write(json.dumps(obj, ensure_ascii=False) + "\n")
+        if self.session_id:
+            session.append(self.session_id, obj)
 
     def reset(self) -> None:
         self.messages = []
