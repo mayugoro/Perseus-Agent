@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+.perseus/
+config.json
+sessions/
+perseus-workspace/
+*.log

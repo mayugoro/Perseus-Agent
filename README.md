@@ -1,0 +1,81 @@
+# Perseus Agent
+
+AI agent ringan untuk **Termux (Android)**. Semua reasoning lewat provider API
+(OpenAI-compatible) — tidak ada model lokal, GGUF, ONNX, atau inferensi CPU.
+
+Repo ini **kosong secara konfigurasi**: base URL, model, dan API key diisi sendiri
+saat setup pertama. Tidak ada provider yang di-hardcode.
+
+## Instal
+
+```bash
+pkg install -y git
+git clone https://github.com/mayugoro/Perseus-Agent.git
+cd Perseus-Agent
+./install.sh
+```
+
+`install.sh` akan:
+
+1. memasang `python` dan `git`
+2. menjalankan wizard: **Base URL**, **Model**, **API key**, mode izin
+3. membuat launcher `perseus` di `$PREFIX/bin`
+
+Setelah itu:
+
+```bash
+perseus
+```
+
+## Setup manual
+
+```bash
+python3 perseus.py --init      # wizard provider
+python3 perseus.py             # REPL
+python3 perseus.py -p "halo"   # satu perintah
+```
+
+Konfigurasi disimpan di `~/.perseus/config.json` (0600). API key boleh disimpan
+di situ, atau dikosongkan dan pakai environment:
+
+```bash
+export PERSEUS_API_KEY='...'
+```
+
+## Perintah REPL
+
+```
+/help                      bantuan
+/tools                     daftar tool
+/new                       reset percakapan
+/mode ask|auto|read-only   mode izin
+/model <id>                ganti model
+/exit
+```
+
+## Tool
+
+- **File**: `read_file`, `write_file`, `patch_file`, `list_dir`, `search_files`
+- **Sistem**: `shell`, `python_exec`, `http_fetch`
+- **Memori**: `memory_save`, `memory_search` (SQLite + FTS5)
+- **Android**: `android_list_apps`, `android_app_info`, `android_install`,
+  `android_uninstall`, `android_launch`, `android_logcat`
+- **Skill**: `skill_list`, `skill_view` (folder `skills/*.md`)
+
+## Keamanan
+
+- Workspace jail: default `~/perseus-workspace`, path di luar itu ditolak
+- Mode `ask`: tool berisiko (tulis/hapus/install/uninstall) minta konfirmasi
+- Backup otomatis file yang ditimpa ke `.perseus/backups/`
+- Audit trail: `~/.perseus/sessions/*.jsonl`
+
+## Batasan
+
+- Butuh koneksi ke provider; tidak ada mode offline
+- `pm install` dapat ditolak PackageManager tertentu → fallback installer UI / SAI
+- Tanpa root, install/uninstall mengikuti izin shell Android
+- Proses dapat dibunuh Doze; gunakan `termux-wake-lock` bila perlu
+
+## Lisensi
+
+MIT

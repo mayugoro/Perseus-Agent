@@ -1,0 +1,11 @@
+{
+  "base_url": "",
+  "model": "",
+  "workspace": "~/perseus-workspace",
+  "permission": "ask",
+  "max_steps": 8,
+  "max_tokens": 4096,
+  "timeout": 180,
+  "allow_root": false,
+  "api_key_env": "PERSEUS_API_KEY"
+}
