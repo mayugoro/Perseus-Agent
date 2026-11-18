@@ -140,6 +140,32 @@ def welcome() -> None:
     print("✦ Tip: /usage shows token usage, context, and session duration.\n")
 
 
+REASONING_OPTS = [
+    ("auto", ""), ("low", "low"), ("medium", "medium"), ("high", "high"),
+    ("max", "max"), ("ultra", "ultra"), ("disable reasoning", "none"),
+    ("cancel", None),
+]
+
+
+def pick_reasoning(current: str = "") -> str | None:
+    """Tampilkan pilihan vertikal; return value baru, None = batal/pertahankan."""
+    print("Reasoning:")
+    for i, (label, _) in enumerate(REASONING_OPTS, 1):
+        mark = " *" if (label == "auto" and not current) or label == current else "  "
+        print(f"{mark}{i}. {label}")
+    raw = input("Pick reasoning number [Enter=keep]: ").strip()
+    if not raw:
+        return None
+    if raw.isdigit() and 1 <= int(raw) <= len(REASONING_OPTS):
+        return REASONING_OPTS[int(raw) - 1][1]
+    low = raw.lower()
+    for label, val in REASONING_OPTS:
+        if low == label:
+            return val
+    print("(invalid, keeping current)")
+    return None
+
+
 def est_tokens(agent: Agent) -> int:
     chars = sum(len(str(m.get("content") or "")) for m in agent.messages)
     return max(0, chars // 4)
@@ -353,13 +379,9 @@ def wizard(cfg: dict) -> dict:
     except Exception:
         pass
 
-    ropts = ["default", "low", "medium", "high"]
-    print("Reasoning: 1. default  2. low  3. medium  4. high")
-    r = input(f"Pick reasoning number [Enter={cfg.get('reasoning_effort') or 'default'}]: ").strip()
-    if r.isdigit() and 1 <= int(r) <= 4:
-        cfg["reasoning_effort"] = "" if r == "1" else ropts[int(r) - 1]
-    elif r.lower() in ropts:
-        cfg["reasoning_effort"] = "" if r.lower() == "default" else r.lower()
+    val = pick_reasoning(cfg.get("reasoning_effort", ""))
+    if val is not None:
+        cfg["reasoning_effort"] = val
 
     mopts = ["ask", "auto", "read-only"]
     print("Permission: 1. ask  2. auto  3. read-only")
@@ -617,15 +639,12 @@ def main() -> int:
             else:
                 m = line.split(None, 1)[1].strip()
             if line == "/model" and m:
-                ropts = ["default", "low", "medium", "high"]
-                print("Reasoning: 1. default  2. low  3. medium  4. high")
-                r = input("Pick reasoning number [Enter=keep]: ").strip()
-                if r.isdigit() and 1 <= int(r) <= 4:
-                    v = "" if r == "1" else ropts[int(r) - 1]
-                    agent.llm.reasoning_effort = v
-                    cfg["reasoning_effort"] = v
+                val = pick_reasoning(cfg.get("reasoning_effort", ""))
+                if val is not None:
+                    agent.llm.reasoning_effort = val
+                    cfg["reasoning_effort"] = val
                     cfgmod.save(cfg)
-                    print(f"reasoning={ropts[int(r)-1]}")
+                    print(f"reasoning={val or 'auto'}")
             agent.llm.model = m
             cfg["model"] = m
             try:
@@ -640,15 +659,19 @@ def main() -> int:
             continue
         if line.startswith("/reasoning"):
             v = line.split(None, 1)[1].strip().lower() if " " in line else ""
-            if v in ("default", "low", "medium", "high"):
-                val = "" if v == "default" else v
+            aliases = {"default": "", "auto": "", "disable": "none",
+                       "disable reasoning": "none", "none": "none",
+                       "low": "low", "medium": "medium", "high": "high",
+                       "max": "max", "ultra": "ultra"}
+            if v in aliases:
+                val = aliases[v]
                 agent.llm.reasoning_effort = val
                 cfg["reasoning_effort"] = val
                 cfgmod.save(cfg)
                 print(f"reasoning={v}")
             else:
                 print(f"reasoning sekarang: {cfg.get('reasoning_effort') or 'default'}")
-                print("ubah: /reasoning default|low|medium|high")
+                print("set: /reasoning auto|low|medium|high|max|ultra|none")
             continue
         if line == "/steps" or line.startswith("/steps "):
             if " " in line:
@@ -840,4 +863,8 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    try:
+        raise SystemExit(main())
+    except KeyboardInterrupt:
+        print("\nGood bye")
+        raise SystemExit(0)
