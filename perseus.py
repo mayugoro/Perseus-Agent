@@ -294,27 +294,46 @@ def main() -> int:
     cfg = cfgmod.load()
 
     if a.command == "sessions":
-        q = " ".join(a.rest).strip()
-        if q:
-            sid = sess.resolve(q)
-            if sid:
-                a.resume = sid
-            else:
-                rows = sess.search(q)
-                if not rows:
-                    print("(tidak ada sesi yang cocok)")
-                for r in rows:
-                    print(f"- {sess.fmt_time(r['updated'])} · {r['title'] or r['id']}\n  {r['snippet']}")
-                return 0
-        else:
+        words = a.rest
+        sub = words[0].lower() if words else ""
+        q = " ".join(words[1:]).strip()
+
+        if not words or sub in ("list", "ls"):
             rows = sess.list_sessions()
             if not rows:
                 print("(belum ada sesi)")
-            for i, r in enumerate(rows, 1):
-                print(f"{i:>2}. {sess.fmt_time(r['updated'])} · {r['turns']} turn · "
-                      f"{r['total']} pesan · {r['title'] or '(tanpa judul)'} · {r['id']}")
-            print("\nBuka: perseus sessions <id|title> · Cari: perseus sessions <kata>")
+            else:
+                print(f"{'#':>2}  {'waktu':<16} {'turn':>4} {'pesan':>5}  title / id")
+                for i, r in enumerate(rows, 1):
+                    print(f"{i:>2}. {sess.fmt_time(r['updated']):<16} {r['turns']:>4} "
+                          f"{r['total']:>5}  {r['title'] or '(tanpa judul)'} · {r['id']}")
+            print("\nBuka: perseus sessions <id|title> · Cari: perseus sessions search <kata>")
             return 0
+
+        if sub == "search":
+            if not q:
+                print("format: perseus sessions search <kata>")
+                return 2
+            rows = sess.search(q)
+            if not rows:
+                print("(tidak ada hasil)")
+            seen = set()
+            for r in rows:
+                if r["id"] in seen:
+                    continue
+                seen.add(r["id"])
+                print(f"- {sess.fmt_time(r['updated'])} · {r['title'] or r['id']}")
+                print(f"  {r['snippet']}")
+            return 0
+
+        # selain list/search: anggap id/title -> buka sesi
+        sid = sess.resolve(" ".join(words).strip())
+        if sid:
+            a.resume = sid
+        else:
+            print(f"Sesi '{' '.join(words)}' tidak ditemukan. "
+                  f"Lihat: perseus sessions list · Cari: perseus sessions search <kata>")
+            return 2
 
     if a.command == "resume":
         a.resume = " ".join(a.rest).strip() or None

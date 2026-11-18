@@ -125,7 +125,8 @@ perseus -c 20261118               # awalan id (yang terbaru cocok)
 perseus -resume 20261118-204418-715
 perseus -c <id> -p "lanjutkan tugas tadi"
 
-perseus sessions                   # daftar sesi dari shell
+perseus sessions list              # daftar sesi
+perseus sessions search <kata>     # cari isi percakapan
 perseus sessions <id|title>        # buka sesi (detail + 6 pesan terakhir)
 perseus resume <id|title>          # langsung lanjut sesi
 ```
