@@ -5,7 +5,7 @@ import json
 import time
 from pathlib import Path
 
-from . import memory, skills
+from . import memory, session, skills
 from .config import api_key
 from .llm import LLM, LLMError
 from .tools import Registry
@@ -49,9 +49,7 @@ class Agent:
         self.log = log
         self.session_file = None
         if log:
-            d = Path.home() / ".perseus" / "sessions"
-            d.mkdir(parents=True, exist_ok=True)
-            self.session_file = d / (time.strftime("%Y%m%d-%H%M%S") + ".jsonl")
+            self.session_file = session.new_file()
 
     def _system(self) -> dict:
         sk = "\n".join(f"  - {n}: {d}" for n, d in skills.list_skills()) or "  (belum ada)"
@@ -161,6 +159,7 @@ class Agent:
                     saved_mem = True
                 self.messages.append({"role": "tool", "tool_call_id": call.get("id", ""),
                                       "name": name, "content": result})
-                self._record({"role": "tool", "name": name, "content": result})
+                self._record({"role": "tool", "name": name,
+                              "tool_call_id": call.get("id", ""), "content": result})
 
         return "[berhenti] batas langkah tercapai"

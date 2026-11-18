@@ -12,6 +12,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from core import config as cfgmod
 from core import queue as qmod
+from core import session as sess
 from core.agent import Agent
 from core.llm import LLM
 
@@ -238,6 +239,36 @@ def main() -> int:
             else:
                 print(f"reasoning sekarang: {cfg.get('reasoning_effort') or 'default'}")
                 print("ubah: /reasoning default|low|medium|high")
+            continue
+        if line == "/session":
+            print(f"file: {agent.session_file}")
+            print(f"pesan: {len(agent.messages)}")
+            continue
+        if line == "/sessions" or line.startswith("/resume"):
+            if line.startswith("/resume"):
+                arg = line.split(None, 1)[1].strip() if " " in line else ""
+                rows = sess.list_sessions()
+                if not arg.isdigit() or not (1 <= int(arg) <= len(rows)):
+                    print("format: /resume N  (lihat /sessions)")
+                    continue
+                r = rows[int(arg) - 1]
+                msgs = sess.load(r["path"])
+                if not msgs:
+                    print("(sesi kosong)")
+                    continue
+                agent.messages = msgs
+                agent.session_file = r["path"]
+                print(f"resume: {sess.fmt_time(r['mtime'])} · {r['turns']} turn · {len(msgs)} pesan")
+                continue
+            rows = sess.list_sessions()
+            if not rows:
+                print("(belum ada sesi)")
+            else:
+                for i, r in enumerate(rows, 1):
+                    active = " *" if agent.session_file == r["path"] else "  "
+                    print(f"{active}{i}. {sess.fmt_time(r['mtime'])} · {r['turns']} turn · "
+                          f"{r['size']//1024} KB · {r['preview']}")
+                print("\n/resume N  lanjutkan sesi")
             continue
         if line == "/learn":
             agent.auto_learn = not agent.auto_learn

@@ -60,6 +60,9 @@ export PERSEUS_API_KEY='...'
 /model [id]                lihat provider + pilih model + reasoning
 /queue [tugas|run|rm N|clear]  antrean tugas
 /reasoning [level]         default|low|medium|high
+/sessions                  daftar sesi tersimpan
+/resume N                  lanjutkan sesi ke-N
+/session                   info sesi aktif
 /learn                     auto-belajar on/off
 /agents [on|off|max N]     subagent paralel
 /exit
@@ -74,6 +77,13 @@ wizard menanyakan level reasoning (`default/low/medium/high`) yang dikirim sebag
 `/queue <tugas>` menambah tugas, `/queue` melihat daftar, `/queue run`
 menjalankannya berurutan (sesi sama), `/queue rm N` dan `/queue clear` mengelola.
 Antrean tersimpan di `~/.perseus/queue.json`, jadi tidak hilang saat CLI ditutup.
+
+## Sesi
+
+Setiap percakapan disimpan otomatis ke `~/.perseus/sessions/*.jsonl`.
+`/sessions` menampilkan daftar (waktu, jumlah turn, cuplikan), `/resume N`
+memuat kembali konteks sesi itu, dan `/session` menunjukkan file aktif.
+Percakapan yang di-resume tetap memakai memory dan skill yang sama.
 
 ## Belajar & berpikir
 
