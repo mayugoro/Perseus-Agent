@@ -179,6 +179,19 @@ def divider() -> None:
     print(f"\033[36m{'─' * w}\033[0m")
 
 
+def sessions_table(rows: list) -> None:
+    if not rows:
+        print("(belum ada sesi)")
+        return
+    tw = min(24, max(8, max(len(r["title"] or "(tanpa judul)") for r in rows)))
+    print(f"{'#':>2} | {'title':<{tw}} | {'terakhir':<9} | obrolan pertama")
+    for i, r in enumerate(rows, 1):
+        title = (r["title"] or "(tanpa judul)")[:tw]
+        prev = (r["preview"] or "").replace("\n", " ")[:40]
+        print(f"{i:>2} | {title:<{tw}} | {sess.rel_time(r['updated']):<9} | {prev}")
+    print("\nBuka: perseus sessions <id|title> · Cari: perseus sessions search <kata>")
+
+
 def show_history(msgs: list, limit: int = 6) -> None:
     tail = [m for m in msgs if (m.get("content") or "").strip()][-limit:]
     if not tail:
@@ -299,15 +312,7 @@ def main() -> int:
         q = " ".join(words[1:]).strip()
 
         if not words or sub in ("list", "ls"):
-            rows = sess.list_sessions()
-            if not rows:
-                print("(belum ada sesi)")
-            else:
-                print(f"{'#':>2}  {'waktu':<16} {'turn':>4} {'pesan':>5}  title / id")
-                for i, r in enumerate(rows, 1):
-                    print(f"{i:>2}. {sess.fmt_time(r['updated']):<16} {r['turns']:>4} "
-                          f"{r['total']:>5}  {r['title'] or '(tanpa judul)'} · {r['id']}")
-            print("\nBuka: perseus sessions <id|title> · Cari: perseus sessions search <kata>")
+            sessions_table(sess.list_sessions())
             return 0
 
         if sub == "search":
@@ -589,15 +594,7 @@ def main() -> int:
                       f"{st['turns']} turn · {len(msgs)} pesan")
                 show_history(msgs)
                 continue
-            rows = sess.list_sessions()
-            if not rows:
-                print("(belum ada sesi)")
-            else:
-                for i, r in enumerate(rows, 1):
-                    active = " *" if agent.session_id == r["id"] else "  "
-                    print(f"{active}{i}. {sess.fmt_time(r['updated'])} · {r['turns']} turn · "
-                          f"{r['total']} pesan · {r['preview']}")
-                print("\n/resume N  lanjutkan · /sessions <kata>  cari")
+            sessions_table(sess.list_sessions())
             continue
         if line == "/learn":
             agent.auto_learn = not agent.auto_learn

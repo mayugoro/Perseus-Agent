@@ -107,7 +107,7 @@ Antrean tersimpan di `~/.perseus/queue.json`, jadi tidak hilang saat CLI ditutup
 Sesi disimpan di **SQLite + FTS5**: `~/.perseus/state.db`
 (tabel `sessions`, `messages`, `messages_fts`).
 
-- `/sessions` — daftar sesi (waktu, turn, jumlah pesan, cuplikan)
+- `/sessions` — tabel: nomor | title | terakhir dipakai | obrolan pertama
 - `/sessions <kata>` — cari isi percakapan lewat FTS5
 - `/resume N` / `/resume <id>` / `/resume <title>` — muat konteks sesi dan
   tampilkan 6 pesan terakhir (kamu/perseus)

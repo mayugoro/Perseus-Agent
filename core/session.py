@@ -175,5 +175,16 @@ def stats(sid: str) -> dict | None:
             "model": r[4], "provider": r[5], "turns": r[6], "total": r[7]}
 
 
+def rel_time(ts: float) -> str:
+    d = max(0, int(time.time() - ts))
+    if d < 60:
+        return "baru saja"
+    if d < 3600:
+        return f"{d // 60}m"
+    if d < 86400:
+        return f"{d // 3600}h"
+    return f"{d // 86400}d"
+
+
 def fmt_time(ts: float) -> str:
     return time.strftime("%Y-%m-%d %H:%M", time.localtime(ts))
