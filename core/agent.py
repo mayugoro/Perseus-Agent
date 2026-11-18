@@ -206,6 +206,17 @@ class Agent:
     def reset(self) -> None:
         self.messages = []
 
+    def _emit_think(self, buf: str, maxw: int) -> None:
+        if not buf:
+            return
+        lines = []
+        for raw in buf.split("\n"):
+            while len(raw) > maxw:
+                lines.append(raw[:maxw])
+                raw = raw[maxw:]
+            lines.append(raw)
+        sys.stdout.write("\033[2m[think]\n" + "\n".join("  " + ln for ln in lines) + "\033[0m\n")
+
     def _spinner(self, stop: threading.Event):
         frames = "⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏"
         body = " thinking…"
@@ -245,34 +256,28 @@ class Agent:
             stop = threading.Event()
             if stream and sys.stdout.isatty():
                 threading.Thread(target=self._spinner, args=(stop,), daemon=True).start()
-            state = {"reason": False, "blue": False, "rbuf": "", "ron": False}
+            import shutil
+            tw = shutil.get_terminal_size((80, 24)).columns
+            state = {"blue": False, "rbuf": "", "flushed": False, "maxw": max(24, tw // 2)}
 
             def on_first():
                 stop.set()
                 time.sleep(0.06)
 
+            def is_worth(buf: str) -> bool:
+                return (len(buf) >= int(self.cfg.get("min_think_chars", 200))
+                        or buf.count("\n") >= 2)
+
             def on_reason(chunk: str):
-                if not self.show_reasoning:
-                    return
-                if state["ron"]:
-                    sys.stdout.write(chunk)
-                    sys.stdout.flush()
-                    return
-                state["rbuf"] += chunk
-                # tampilkan hanya reasoning yang cukup panjang (bukan arahan singkat)
-                if (len(state["rbuf"]) >= int(self.cfg.get("min_think_chars", 200))
-                        or state["rbuf"].count("\n") >= 2):
-                    sys.stdout.write("\033[2m[think] " + state["rbuf"])
-                    sys.stdout.flush()
-                    state["ron"] = True
-                    state["reason"] = True
-                    state["rbuf"] = ""
+                if self.show_reasoning:
+                    state["rbuf"] += chunk
 
             def on_text(chunk: str):
-                if state["reason"]:
-                    sys.stdout.write("\033[0m\n")
-                    state["reason"] = False
-                state["rbuf"] = ""
+                if not state["flushed"]:
+                    state["flushed"] = True
+                    if self.show_reasoning and is_worth(state["rbuf"]):
+                        self._emit_think(state["rbuf"], state["maxw"])
+                    state["rbuf"] = ""
                 if not state["blue"]:
                     sys.stdout.write("\033[36m")
                     state["blue"] = True
@@ -302,19 +307,16 @@ class Agent:
                 return "[provider error] gagal setelah retry"
             stop.set()
             time.sleep(0.02)
-            if (self.show_reasoning and not state["ron"] and state["rbuf"]
-                    and state["rbuf"].count("\n") >= 2):
-                sys.stdout.write("\033[2m[think] " + state["rbuf"] + "\033[0m\n")
-                state["ron"] = True
-                state["reason"] = False
-            if state["reason"]:
-                sys.stdout.write("\033[0m\n")
-                state["reason"] = False
+            if not state["flushed"]:
+                state["flushed"] = True
+                if self.show_reasoning and state["rbuf"] and (
+                        len(state["rbuf"]) >= int(self.cfg.get("min_think_chars", 200))
+                        or state["rbuf"].count("\n") >= 2):
+                    self._emit_think(state["rbuf"], state["maxw"])
+                state["rbuf"] = ""
             if state["blue"]:
                 sys.stdout.write("\033[0m")
                 state["blue"] = False
-            state["rbuf"] = ""
-            state["ron"] = False
 
             content = msg.get("content") or ""
             calls = msg.get("tool_calls") or []
