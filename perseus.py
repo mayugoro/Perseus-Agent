@@ -21,15 +21,17 @@ from core.llm import LLM
 C = {"b": "\033[1m", "c": "\033[36m", "y": "\033[33m", "r": "\033[31m", "0": "\033[0m"}
 
 SLASH = [
-    ("/help", "bantuan"), ("/tools", "daftar tool"), ("/new", "reset percakapan"),
-    ("/mode", "ask | auto | read-only"), ("/model", "daftar / pilih model"),
-    ("/reasoning", "default | low | medium | high"), ("/think", "toggle blok thinking"),
-    ("/memory", "lihat memori & profil"), ("/forget", "hapus memori by id"),
-    ("/curator", "auto-skill setelah tugas kompleks"), ("/yolo", "matikan konfirmasi tool berisiko"), ("/learn", "toggle auto-learn ke memory"), ("/queue", "antrean tugas"),
-    ("/agents", "subagent paralel"), ("/steps", "batas langkah tool"),
-    ("/usage", "token & durasi sesi"), ("/sessions", "daftar / cari sesi"), ("/resume", "lanjutkan sesi"),
-    ("/title", "atur judul sesi"),
-    ("/session", "info sesi aktif"), ("/exit", "keluar"),
+    ("/help", "help"), ("/tools", "list tools"), ("/new", "reset conversation"),
+    ("/mode", "ask | auto | read-only"), ("/model", "list / pick model"),
+    ("/reasoning", "default | low | medium | high"), ("/think", "toggle thinking block"),
+    ("/yolo", "disable risky-tool confirmation"), ("/learn", "auto-learn to memory"),
+    ("/curator", "auto-skill after complex tasks"),
+    ("/memory", "show memory & profile"), ("/forget", "delete memory by id"),
+    ("/queue", "task queue"), ("/agents", "parallel subagents"),
+    ("/steps", "tool step limit"), ("/usage", "token & session duration"),
+    ("/sessions", "list / search sessions"), ("/resume", "resume session"),
+    ("/title", "set session title"), ("/session", "active session info"),
+    ("/exit", "exit"),
 ]
 
 STATUS = {}
