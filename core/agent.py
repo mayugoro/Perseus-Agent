@@ -103,21 +103,32 @@ class Agent:
                 if n >= 2:
                     break
 
+    def _tokens(self) -> int:
+        chars = sum(len(str(m.get("content") or "")) for m in self.messages)
+        return max(0, chars // 4)
+
     def _compact(self) -> None:
-        if len(self.messages) <= self.context_messages:
-            return
-        old = self.messages[:-12]
-        tail = self.messages[-12:]
-        try:
-            r = self.llm.chat([
-                {"role": "system", "content": "Ringkas percakapan berikut jadi catatan padat: "
-                 "tujuan, keputusan, file/perintah penting, hasil. Bahasa Indonesia."},
-                {"role": "user", "content": json.dumps(old, ensure_ascii=False)[:24000]},
-            ])
-            summary = (r.get("content") or "").strip()
-        except Exception:
-            summary = "(ringkasan lama tidak tersedia)"
-        self.messages = [{"role": "system", "content": "Ringkasan percakapan sebelumnya:\n" + summary}] + tail
+        limit = int(self.context_length or 128000)
+        threshold = int(limit * float(self.cfg.get("compress_at", 0.7)))
+        for _ in range(3):
+            if len(self.messages) <= self.context_messages and self._tokens() <= threshold:
+                return
+            old = self.messages[:-12]
+            tail = self.messages[-12:]
+            if not old:
+                return
+            try:
+                r = self.llm.chat([
+                    {"role": "system", "content":
+                     "Ringkas percakapan berikut jadi catatan padat: tujuan, keputusan, "
+                     "file/perintah penting, hasil, dan hal yang belum selesai. Bahasa Indonesia."},
+                    {"role": "user", "content": json.dumps(old, ensure_ascii=False)[:60000]},
+                ])
+                summary = (r.get("content") or "").strip()
+            except Exception:
+                summary = "(ringkasan lama tidak tersedia)"
+            self.messages = [{"role": "system",
+                              "content": "Ringkasan percakapan sebelumnya:\n" + summary}] + tail
 
     def _record(self, obj: dict) -> None:
         if self.session_id:

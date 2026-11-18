@@ -156,7 +156,12 @@ saat `/yolo off`. Status `YOLO` tampil di banner dan status bar.
   diinjeksi ke system prompt sesi berikutnya. Matikan dengan `/learn`.
 - `skill_save` menyimpan prosedur ke `~/.perseus/skills/`; daftar skill otomatis
   muncul di system prompt dan dimuat penuh lewat `skill_view`.
-- Percakapan panjang diringkas otomatis (`context_messages`, default 36).
+- Batas context mengikuti model: dibaca dari `GET /models` saat start dan setiap
+  `/model`, jadi ganti model = batas baru otomatis.
+- Kompresi otomatis berbasis token: saat perkiraan token melewati
+  `compress_at` (default 70% dari context model), pesan lama diringkas dan hanya
+  12 pesan terakhir dipertahankan. Ambang pesan (`context_messages`, 36) tetap
+  dipakai sebagai pengaman.
 
 ## Subagent paralel
 

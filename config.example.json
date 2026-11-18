@@ -19,5 +19,6 @@
   "auto_learn": true,
   "retries": 3,
   "retry_delay": 15,
-  "context_length": 0
+  "context_length": 0,
+  "compress_at": 0.7
 }

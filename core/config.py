@@ -25,6 +25,7 @@ DEFAULTS = {
     "reasoning_effort": "high",
     "auto_learn": True,
     "context_messages": 36,
+    "compress_at": 0.7,
     "context_length": 128000,
     "subagents": {"enabled": True, "max_parallel": 3, "permission": "auto"},
 }
