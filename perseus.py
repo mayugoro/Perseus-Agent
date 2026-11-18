@@ -72,7 +72,7 @@ def status_line() -> str:
     dur = int(time.time() - STATUS.get("start", time.time()))
     model = str(agent.llm.model).split("/")[-1]
     last = agent.last_elapsed
-    return (f" ☤ {model} · ctx {pct}% [{bar}] {tok//1000}k/{limit//1000}k"
+    return (f" ☤ {model} · ctx {pct}% [{bar}] {tok}/{limit//1000}k"
             f" · {last:.0f}s · ⏲ {dur}s    / commands · @ files · ! shell")
 
 
@@ -412,7 +412,7 @@ def main() -> int:
     while True:
         try:
             if ps:
-                line = ps.prompt().strip()
+                line = ps.prompt(refresh_interval=1.0).strip()
             else:
                 print(f"\033[2m{status_line()}\033[0m")
                 line = input(f"{C['c']}❯{C['0']} ").strip()
