@@ -50,6 +50,10 @@ Rules:
 """
 
 
+class AbortRun(BaseException):
+    pass
+
+
 class Agent:
     def __init__(self, cfg: dict, confirm=None, log=True, allow_delegate=True, prefix=""):
         self.cfg = cfg
@@ -72,6 +76,7 @@ class Agent:
         self.curator = bool(cfg.get("curator", True))
         self.curator_min = int(cfg.get("curator_min_tools", 4))
         self.prefix = prefix
+        self.abort = threading.Event()
         self._last_user = ""
         self.context_messages = int(cfg.get("context_messages", 36))
         self.max_steps = int(cfg.get("max_steps", 8))
@@ -239,6 +244,7 @@ class Agent:
             self.last_elapsed = time.time() - t0
 
     def _run(self, user_text: str, stream: bool = True) -> str:
+        self.abort.clear()
         self._last_user = user_text
         self.messages.append({"role": "user", "content": user_text})
         self._record({"role": "user", "content": user_text})
@@ -252,6 +258,8 @@ class Agent:
         recent_calls: list[str] = []
         step = 0
         while self.max_steps <= 0 or step < self.max_steps:
+            if self.abort.is_set():
+                return "[stopped by user]"
             step += 1
             stop = threading.Event()
             if stream and sys.stdout.isatty():
@@ -269,10 +277,14 @@ class Agent:
                         or buf.count("\n") >= 2)
 
             def on_reason(chunk: str):
+                if self.abort.is_set():
+                    raise AbortRun()
                 if self.show_reasoning:
                     state["rbuf"] += chunk
 
             def on_text(chunk: str):
+                if self.abort.is_set():
+                    raise AbortRun()
                 if not state["flushed"]:
                     state["flushed"] = True
                     if self.show_reasoning and is_worth(state["rbuf"]):
@@ -295,6 +307,9 @@ class Agent:
                     else:
                         msg = self.llm.chat([self._system()] + self.messages[-40:], tools)
                     break
+                except AbortRun:
+                    stop.set()
+                    return "[stopped by user]"
                 except LLMError as e:
                     hard = any(f"HTTP {c}" in str(e) for c in (400, 401, 403, 404))
                     if attempt < self.llm.retries and not self.last_streamed and not hard:
@@ -335,6 +350,8 @@ class Agent:
                 return out
 
             for call in calls:
+                if self.abort.is_set():
+                    return "[stopped by user]"
                 fn = call.get("function", {})
                 name = fn.get("name", "")
                 try:

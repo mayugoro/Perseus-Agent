@@ -5,7 +5,10 @@ from __future__ import annotations
 import argparse
 import getpass
 import json
+import os
+import select
 import sys
+import threading
 import time
 from pathlib import Path
 
@@ -151,7 +154,7 @@ def pick_reasoning(current: str = "") -> str | None:
     """Tampilkan pilihan vertikal; return value baru, None = batal/pertahankan."""
     print("Reasoning:")
     for i, (label, _) in enumerate(REASONING_OPTS, 1):
-        mark = "❯ " if (label == "auto" and not current) or label == current else "  "
+        mark = f"{C['c']}❯{C['0']} " if (label == "auto" and not current) or label == current else "  "
         print(f"{mark}{i}. {label}")
     raw = input("Pick reasoning number [Enter=keep]: ").strip()
     if not raw:
@@ -325,8 +328,51 @@ def show_history(msgs: list, limit: int = 6) -> None:
 
 
 def run_show(agent: Agent, text: str) -> str:
-    out = agent.run(text)
-    if not agent.last_streamed:
+    stopw = threading.Event()
+    abort = threading.Event()
+    agent.abort.clear()
+
+    def watch():
+        buf = ""
+        while not stopw.is_set():
+            try:
+                r, _, _ = select.select([0], [], [], 0.2)
+            except Exception:
+                return
+            if not r:
+                continue
+            try:
+                data = os.read(0, 4096)
+            except Exception:
+                return
+            if not data:
+                return
+            buf += data.decode("utf-8", "ignore")
+            while "\n" in buf:
+                line, buf = buf.split("\n", 1)
+                line = line.strip()
+                if not line:
+                    continue
+                if line == "/stop":
+                    abort.set()
+                    agent.abort.set()
+                    print("\n[stop requested]")
+                else:
+                    qmod.add(line)
+                    print(f"\n[queued] {line[:70]}")
+
+    th = None
+    if sys.stdin.isatty():
+        th = threading.Thread(target=watch, daemon=True)
+        th.start()
+    try:
+        out = agent.run(text)
+    finally:
+        stopw.set()
+        abort.set()
+    if agent.abort.is_set() or out.startswith("[stopped"):
+        print("\033[33m[stopped]\033[0m")
+    if not agent.last_streamed and not out.startswith("[stopped"):
         print(out)
     return out
 
@@ -624,7 +670,7 @@ def main() -> int:
                     models = []
                 if models:
                     for i, mid in enumerate(models[:40], 1):
-                        mark = "❯ " if mid == agent.llm.model else "  "
+                        mark = f"{C['c']}❯{C['0']} " if mid == agent.llm.model else "  "
                         print(f"{mark}{i}. {mid}")
                     if len(models) > 40:
                         print(f"   … {len(models)-40} model lain")
