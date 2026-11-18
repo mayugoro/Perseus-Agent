@@ -20,5 +20,6 @@
   "retries": 3,
   "retry_delay": 15,
   "context_length": 0,
-  "compress_at": 0.7
+  "compress_at": 0.7,
+  "min_think_chars": 300
 }

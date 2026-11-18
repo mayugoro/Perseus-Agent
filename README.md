@@ -165,8 +165,9 @@ saat `/yolo off`. Status `YOLO` tampil di banner dan status bar.
 
 - Respons di-stream (SSE): teks muncul token demi token, tidak menunggu selesai.
 - Saat menunggu token pertama, muncul spinner `⠋ thinking…` (hanya di TTY).
-- Blok `[think]` ditampilkan abu-abu/dim saat model mengirim `reasoning_content`;
-  toggle `/think`.
+- Blok `[think]` hanya ditampilkan kalau reasoning cukup panjang
+  (`min_think_chars`, default 300) — arahan singkat seperti “respond briefly”
+  tidak ditampilkan. `/think` mematikan/menyalakan seluruh blok.
 - `auto_learn` (default on): setelah jawaban selesai, satu panggilan ringan
   mengekstrak maksimal 2 fakta tahan lama → disimpan ke SQLite. Fakta ini
   diinjeksi ke system prompt sesi berikutnya. Matikan dengan `/learn`.
