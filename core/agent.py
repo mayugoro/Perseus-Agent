@@ -26,9 +26,9 @@ Aturan:
 
 
 class Agent:
-    def __init__(self, cfg: dict, confirm=None, log=True):
+    def __init__(self, cfg: dict, confirm=None, log=True, allow_delegate=True):
         self.cfg = cfg
-        self.registry = Registry(cfg)
+        self.registry = Registry(cfg, allow_delegate=allow_delegate)
         self.llm = LLM(cfg["base_url"], api_key(cfg), cfg["model"],
                        int(cfg.get("max_tokens", 4096)), int(cfg.get("timeout", 180)))
         self.confirm = confirm or (lambda name, args: False)

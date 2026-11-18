@@ -7,5 +7,10 @@
   "max_tokens": 4096,
   "timeout": 180,
   "allow_root": false,
-  "api_key_env": "PERSEUS_API_KEY"
+  "api_key_env": "PERSEUS_API_KEY",
+  "subagents": {
+    "enabled": true,
+    "max_parallel": 3,
+    "permission": "auto"
+  }
 }

@@ -146,7 +146,7 @@ def main() -> int:
             break
         if line == "/help":
             print("/tools  daftar tool\n/new    reset percakapan\n/mode ask|auto|read-only"
-                  "\n/model <id>\n/queue [tugas|run|rm N|clear]  antrean tugas\n/exit   keluar")
+                  "\n/model <id>\n/queue [tugas|run|rm N|clear]  antrean tugas\n/agents [on|off|max N]  subagent paralel\n/exit   keluar")
             continue
         if line == "/tools":
             show_tools(agent)
@@ -171,6 +171,36 @@ def main() -> int:
             cfg["model"] = m
             cfgmod.save(cfg)
             print(f"model={m}")
+            continue
+        if line == "/agents" or line.startswith("/agents "):
+            sub = cfg.setdefault("subagents", {"enabled": True, "max_parallel": 3, "permission": "auto"})
+            rest = line[7:].strip()
+            if not rest:
+                print(f"subagents : {'ON' if sub.get('enabled', True) else 'OFF'}")
+                print(f"max paralel: {sub.get('max_parallel', 3)}")
+                print(f"permission : {sub.get('permission', 'auto')}")
+                print("\n/agents on|off · /agents max N · /agents permission auto|read-only")
+            elif rest in ("on", "off"):
+                sub["enabled"] = rest == "on"
+                cfgmod.save(cfg)
+                print(f"subagents={rest}")
+            elif rest.startswith("max "):
+                try:
+                    sub["max_parallel"] = max(1, min(8, int(rest.split()[1])))
+                    cfgmod.save(cfg)
+                    print(f"max paralel={sub['max_parallel']}")
+                except (IndexError, ValueError):
+                    print("format: /agents max N (1-8)")
+            elif rest.startswith("permission "):
+                v = rest.split(None, 1)[1].strip()
+                if v in ("auto", "read-only"):
+                    sub["permission"] = v
+                    cfgmod.save(cfg)
+                    print(f"permission={v}")
+                else:
+                    print("pilihan: auto | read-only")
+            else:
+                print("perintah: /agents on|off · /agents max N · /agents permission auto|read-only")
             continue
         if line == "/queue" or line.startswith("/queue "):
             rest = line[6:].strip()

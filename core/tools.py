@@ -31,8 +31,9 @@ class Tool:
 
 
 class Registry:
-    def __init__(self, cfg: dict):
+    def __init__(self, cfg: dict, allow_delegate: bool = True):
         self.cfg = cfg
+        self.allow_delegate = allow_delegate
         self.workspace = Path(cfg["workspace"])
         self.timeout = int(cfg.get("timeout", 180))
         self.tools: dict[str, Tool] = {}
@@ -163,6 +164,18 @@ class Registry:
                      "filter": {"type": "string"}, "lines": {"type": "integer"}},
                   "required": []}, self.t_logcat)
 
+        if self.allow_delegate and (self.cfg.get("subagents") or {}).get("enabled", True):
+            self.add("delegate_task",
+                     "Jalankan beberapa subagent paralel, masing-masing punya konteks sendiri. "
+                     "Kirim daftar tugas; hasilnya ringkasan per tugas.",
+                     {"type": "object", "properties": {
+                         "tasks": {"type": "array", "items": {"type": "object", "properties": {
+                             "goal": {"type": "string"},
+                             "context": {"type": "string"}},
+                             "required": ["goal"]}},
+                         "max_parallel": {"type": "integer"}},
+                      "required": ["tasks"]}, self.t_delegate)
+
         self.add("skill_list", "Daftar skill markdown di folder skills/.",
                  {"type": "object", "properties": {}, "required": []}, self.t_skill_list)
 
@@ -291,6 +304,33 @@ class Registry:
             rx = re.compile(filter, re.I)
             out = "\n".join(l for l in out.splitlines() if rx.search(l))
         return out[-12000:] or "(kosong)"
+
+    # subagents
+    def t_delegate(self, tasks: list, max_parallel: int | None = None) -> str:
+        import concurrent.futures as cf
+        from .agent import Agent
+
+        conf = self.cfg.get("subagents") or {}
+        limit = int(max_parallel or conf.get("max_parallel", 3))
+        limit = max(1, min(limit, 8))
+        if not tasks:
+            return "ERROR: tasks kosong"
+
+        def run_one(item: dict) -> dict:
+            goal = str(item.get("goal", "")).strip()
+            ctx = str(item.get("context", "")).strip()
+            sub_cfg = dict(self.cfg)
+            sub_cfg["permission"] = conf.get("permission", "auto")
+            a = Agent(sub_cfg, confirm=lambda *_: True, log=True, allow_delegate=False)
+            prompt = goal if not ctx else f"{goal}\n\nKonteks:\n{ctx}"
+            try:
+                return {"goal": goal, "result": a.run(prompt)}
+            except Exception as e:
+                return {"goal": goal, "result": f"ERROR: {type(e).__name__}: {e}"}
+
+        with cf.ThreadPoolExecutor(max_workers=limit) as ex:
+            results = list(ex.map(run_one, tasks))
+        return json.dumps(results, ensure_ascii=False, indent=2)
 
     # skills
     def _skills_dir(self) -> Path:

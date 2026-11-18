@@ -19,6 +19,7 @@ DEFAULTS = {
     "timeout": 180,
     "allow_root": False,
     "api_key_env": "PERSEUS_API_KEY",
+    "subagents": {"enabled": True, "max_parallel": 3, "permission": "auto"},
 }
 
 

@@ -58,12 +58,29 @@ export PERSEUS_API_KEY='...'
 /mode ask|auto|read-only   mode izin
 /model <id>                ganti model
 /queue [tugas|run|rm N|clear]  antrean tugas
+/agents [on|off|max N]     subagent paralel
 /exit
 ```
 
 `/queue <tugas>` menambah tugas, `/queue` melihat daftar, `/queue run`
 menjalankannya berurutan (sesi sama), `/queue rm N` dan `/queue clear` mengelola.
 Antrean tersimpan di `~/.perseus/queue.json`, jadi tidak hilang saat CLI ditutup.
+
+## Subagent paralel
+
+Model dapat memanggil tool `delegate_task` untuk menjalankan beberapa subagent
+sekaligus. Tiap subagent punya konteks/percakapan sendiri, model yang sama, dan
+sesi terpisah — jadi bisa "berpikir sendiri" lalu hasilnya digabung.
+
+Konfigurasi di `~/.perseus/config.json`:
+
+```json
+"subagents": {"enabled": true, "max_parallel": 3, "permission": "auto"}
+```
+
+Atau lewat REPL: `/agents`, `/agents on|off`, `/agents max N`,
+`/agents permission auto|read-only`. Batas aman 1–8 subagent; subagent tidak
+boleh mendelegasikan lagi (anti-rekursif).
 
 ## Tool
 
