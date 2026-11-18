@@ -2,8 +2,19 @@
 set -e
 cd "$(dirname "$0")"
 
-pkg install -y python git
-python3 -m pip install --quiet --upgrade prompt_toolkit || true
+echo "== Perseus installer =="
+pkg update -y || true
+pkg install -y python git expat
+
+# dependency Python (prompt_toolkit untuk completion)
+python3 -m pip install --quiet --upgrade pip || true
+python3 -m pip install --quiet -r requirements.txt \
+  || python3 -m pip install --quiet prompt_toolkit || true
+
+# cek pyexpat (dipakai prompt_toolkit di sebagian build Termux)
+if ! python3 -c "import pyexpat" >/dev/null 2>&1; then
+  echo "PERINGATAN: pyexpat bermasalah. Jalankan: pkg reinstall python"
+fi
 
 python3 perseus.py --init
 

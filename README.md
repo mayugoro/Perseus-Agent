@@ -17,7 +17,8 @@ cd Perseus-Agent
 
 `install.sh` akan:
 
-1. memasang `python` dan `git`
+1. memasang `python`, `git`, `expat`, dan dependency Python
+   (`prompt_toolkit`) dari `requirements.txt`
 2. menjalankan wizard: **Base URL** + **API key**; model diambil otomatis dari
    `{base_url}/models` lalu dipilih dari daftar
 3. membuat launcher `perseus` di `$PREFIX/bin`
