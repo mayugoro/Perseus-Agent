@@ -249,6 +249,7 @@ class Agent:
 
             def on_first():
                 stop.set()
+                time.sleep(0.06)
 
             def on_reason(chunk: str):
                 if not self.show_reasoning:
@@ -347,6 +348,9 @@ class Agent:
                               "Jangan ulangi; gunakan hasil sebelumnya atau jawab.")
                     print(f"  {self.prefix}\033[33m⟡ {name} (loop terdeteksi, dilewati)\033[0m")
                 else:
+                    ts = threading.Event()
+                    if stream and sys.stdout.isatty():
+                        threading.Thread(target=self._spinner, args=(ts,), daemon=True).start()
                     if self.permission == "read-only" and (
                             self.registry.tools.get(name) and self.registry.tools[name].danger):
                         result = "DITOLAK: mode read-only"
@@ -355,6 +359,8 @@ class Agent:
                         result = self.registry.call(name, args) if ok else "DITOLAK oleh pengguna"
                     else:
                         result = self.registry.call(name, args)
+                    ts.set()
+                    time.sleep(0.02)
                     print(f"  {self.prefix}\033[36m⟡ {name}\033[0m {json.dumps(args, ensure_ascii=False)[:160]}")
                 if name == "memory_save" and result.startswith("OK"):
                     saved_mem = True
