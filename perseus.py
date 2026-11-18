@@ -93,6 +93,36 @@ def build_prompt():
         return None
 
 
+def setup_readline() -> bool:
+    """Fallback completion via GNU readline (Tab)."""
+    try:
+        import readline
+
+        def completer(text, state):
+            buf = readline.get_line_buffer()
+            if not buf.startswith("/"):
+                return None
+            parts = buf.split()
+            if len(parts) <= 1:
+                opts = [c for c, _ in SLASH if c.startswith(text)]
+            else:
+                opts = {
+                    "/mode": ["ask", "auto", "read-only"],
+                    "/reasoning": ["default", "low", "medium", "high"],
+                    "/agents": ["on", "off", "max", "permission"],
+                    "/queue": ["run", "clear", "rm"],
+                }.get(parts[0], [])
+                opts = [o for o in opts if o.startswith(text)]
+            return opts[state] if state < len(opts) else None
+
+        readline.set_completer(completer)
+        readline.set_completer_delims(" \t\n")
+        readline.parse_and_bind("tab: complete")
+        return True
+    except Exception:
+        return False
+
+
 def run_show(agent: Agent, text: str) -> str:
     out = agent.run(text)
     if not agent.last_streamed:
@@ -243,7 +273,10 @@ def main() -> int:
         print(f"  completion: aktif — ketik / untuk daftar perintah\n")
     else:
         err = globals().get("_PT_ERROR") or _PT_ERROR or "prompt_toolkit tidak tersedia"
-        print(f"  completion: off ({err})"
+        if setup_readline():
+            print(f"  completion: tab/readline (prompt_toolkit gagal: {err})")
+        else:
+            print(f"  completion: off ({err})"
               f" — ketik / lalu Enter untuk daftar\n")
 
     while True:
