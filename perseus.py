@@ -503,7 +503,10 @@ def main() -> int:
             else:
                 print(f"\033[2m{status_line()}\033[0m")
                 line = input(f"{C['c']}❯{C['0']} ").strip()
-        except (EOFError, KeyboardInterrupt):
+        except KeyboardInterrupt:
+            print(f"\n{C['c']}Good bye{C['0']}")
+            break
+        except EOFError:
             print()
             break
         if not line:
