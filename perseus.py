@@ -332,146 +332,16 @@ def show_history(msgs: list, limit: int = 6) -> None:
     print()
 
 
-async def _concurrent(agent: Agent, text: str, ps, stream: bool = False) -> str:
-    from prompt_toolkit.patch_stdout import patch_stdout
-    frames = "⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏"
-
-    def toolbar():
-        return status_line()
-
-    def message():
-        f = frames[int(time.time() * 10) % len(frames)]
-        return f" {f}\n❯ "
-
-    with patch_stdout():
-        task = asyncio.create_task(asyncio.to_thread(agent.run, text, stream))
-        while not task.done():
-            inp = asyncio.create_task(ps.prompt_async(
-                message=message, bottom_toolbar=toolbar, refresh_interval=0.15))
-            done, _ = await asyncio.wait({task, inp}, return_when=asyncio.FIRST_COMPLETED)
-            if inp in done:
-                try:
-                    line = (inp.result() or "").strip()
-                except Exception:
-                    line = ""
-                if line == "/stop":
-                    agent.abort.set()
-                    print("\n[stop requested]")
-                elif line == "/exit":
-                    agent.abort.set()
-                    qmod.add("/exit")
-                elif line:
-                    qmod.add(line)
-                    print(f"\n[queued] {line[:70]}")
-            else:
-                try:
-                    ps.app.exit()
-                except Exception:
-                    pass
-                inp.cancel()
-                try:
-                    await inp
-                except BaseException:
-                    pass
-        return await task
-
-
 def run_show(agent: Agent, text: str, ps=None) -> str:
-    if ps is not None:
-        old_tty = agent.tty
-        old_color = agent.color
-        old_printer = agent.printer
-        agent.tty = False
-        agent.color = True
-        try:
-            from prompt_toolkit import print_formatted_text
-            from prompt_toolkit.formatted_text import FormattedText
-            agent.printer = lambda name, args: print_formatted_text(
-                FormattedText([("ansicyan", f"  </{name}>"), ("", f" {args}")]))
-        except Exception:
-            agent.printer = None
-        agent.line_mode = False
-        try:
-            out = asyncio.run(_concurrent(agent, text, ps, stream=False))
-        except KeyboardInterrupt:
-            agent.abort.set()
-            out = "[stopped by user]"
-        finally:
-            agent.tty = old_tty
-            agent.color = old_color
-            agent.printer = old_printer
-            agent.line_mode = False
-        if agent.abort.is_set() or out.startswith("[stopped"):
-            print("\033[33m[stopped]\033[0m")
-        elif out:
-            print("\033[36m" + out + "\033[0m")
-        return out
-    stopw = threading.Event()
-    abort = threading.Event()
-    agent.abort.clear()
-
-    def watch():
-        buf = ""
-        while not stopw.is_set():
-            try:
-                r, _, _ = select.select([0], [], [], 0.2)
-            except Exception:
-                return
-            if not r:
-                continue
-            try:
-                data = os.read(0, 4096)
-            except Exception:
-                return
-            if not data:
-                return
-            buf += data.decode("utf-8", "ignore")
-            while "\n" in buf:
-                line, buf = buf.split("\n", 1)
-                line = line.strip()
-                if not line:
-                    continue
-                print(f"\n{C['c']}❯{C['0']} {line}")
-                if line == "/stop":
-                    abort.set()
-                    agent.abort.set()
-                    print("\n[stop requested]")
-                else:
-                    qmod.add(line)
-                    print(f"\n[queued] {line[:70]}")
-
-    th = None
-    saved_tty = None
-    if sys.stdin.isatty():
-        try:
-            import termios
-            fd = sys.stdin.fileno()
-            saved_tty = termios.tcgetattr(fd)
-            attrs = termios.tcgetattr(fd)
-            attrs[3] &= ~termios.ECHO
-            termios.tcsetattr(fd, termios.TCSADRAIN, attrs)
-        except Exception:
-            saved_tty = None
-        th = threading.Thread(target=watch, daemon=True)
-        th.start()
     try:
-        out = agent.run(text)
-    finally:
-        stopw.set()
-        abort.set()
-        if saved_tty is not None:
-            try:
-                import termios
-                termios.tcsetattr(sys.stdin.fileno(), termios.TCSADRAIN, saved_tty)
-            except Exception:
-                pass
-    if agent.abort.is_set() or out.startswith("[stopped"):
-        print("\033[33m[stopped]\033[0m")
-    if not agent.last_streamed and not out.startswith("[stopped"):
+        out = agent.run(text, stream=True)
+    except KeyboardInterrupt:
+        agent.abort.set()
+        print("\n\033[33m[stopped]\033[0m")
+        return ""
+    if not agent.last_streamed:
         print(out)
     return out
-
-
 def show_tools(agent: Agent) -> None:
     for t in agent.registry.tools.values():
         flag = "!" if t.danger else " "
