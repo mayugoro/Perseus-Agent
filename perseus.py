@@ -362,6 +362,23 @@ def _save_provider(cfg: dict, entry: dict) -> None:
 def wizard(cfg: dict) -> dict:
     print(f"{C['b']}Perseus setup{C['0']} — provider + model\n")
     providers = _providers(cfg)
+    if not providers and cfg.get("base_url"):
+        try:
+            from urllib.parse import urlparse
+            host = urlparse(cfg["base_url"]).netloc
+        except Exception:
+            host = ""
+        legacy = {
+            "display_name": cfg.get("display_name") or host or "default",
+            "base_url": cfg["base_url"],
+            "api_key": cfg.get("api_key", ""),
+            "model": cfg.get("model", ""),
+            "context_length": cfg.get("context_length"),
+            "reasoning_effort": cfg.get("reasoning_effort", ""),
+        }
+        cfg["providers"] = [legacy]
+        cfg["active_provider"] = legacy["display_name"]
+        providers = _providers(cfg)
     entry = None
     if providers:
         print("Providers:")
