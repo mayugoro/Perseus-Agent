@@ -107,7 +107,8 @@ class LLM:
         if not self.api_key:
             raise LLMError("API key kosong. Set PERSEUS_API_KEY di environment.")
         body = {"model": self.model, "messages": messages,
-                "max_tokens": self.max_tokens, "stream": True}
+                "max_tokens": self.max_tokens, "stream": True,
+                "stream_options": {"include_usage": True}}
         if self.reasoning_effort:
             body["reasoning_effort"] = self.reasoning_effort
         if tools:
@@ -119,6 +120,7 @@ class LLM:
                      "Content-Type": "application/json",
                      "Accept": "text/event-stream",
                      "User-Agent": "Perseus/0.1 (Termux)"})
+        usage = None
         content, reasoning = [], []
         calls: dict[int, dict] = {}
         first = False
@@ -135,6 +137,8 @@ class LLM:
                         j = json.loads(data)
                     except json.JSONDecodeError:
                         continue
+                    if j.get("usage"):
+                        usage = j["usage"]
                     ch = (j.get("choices") or [{}])[0]
                     d = ch.get("delta") or {}
                     rc = d.get("reasoning_content") or d.get("reasoning")
@@ -182,6 +186,8 @@ class LLM:
             msg["reasoning_content"] = "".join(reasoning)
         if calls:
             msg["tool_calls"] = [calls[k] for k in sorted(calls)]
+        if usage:
+            msg["usage"] = usage
         return msg
 
     def chat(self, messages: list, tools: list | None = None) -> dict:

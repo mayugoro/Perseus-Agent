@@ -81,6 +81,7 @@ class Agent:
         self.color = True
         self.line_mode = False
         self._lbuf = ""
+        self.last_usage = {}
         self._last_user = ""
         self.context_messages = int(cfg.get("context_messages", 36))
         self.max_steps = int(cfg.get("max_steps", 8))
@@ -346,10 +347,13 @@ class Agent:
                 sys.stdout.write("\033[36m" + self._lbuf + "\033[0m\n")
                 sys.stdout.flush()
                 self._lbuf = ""
+        self.last_usage = {}
             if self.color and state["blue"]:
                 sys.stdout.write("\033[0m")
                 state["blue"] = False
 
+            if msg.get("usage"):
+                self.last_usage = msg["usage"]
             content = msg.get("content") or ""
             calls = msg.get("tool_calls") or []
             self.messages.append(msg)
