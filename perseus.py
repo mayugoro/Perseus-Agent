@@ -338,7 +338,7 @@ async def _concurrent(agent: Agent, text: str, ps, stream: bool = False) -> str:
 
     def toolbar():
         f = frames[int(time.time() * 10) % len(frames)]
-        return f" {f} thinking…  {status_line()}"
+        return f" {f}  {status_line()}"
 
     with patch_stdout():
         task = asyncio.create_task(asyncio.to_thread(agent.run, text, stream))
