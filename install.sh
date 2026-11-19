@@ -9,7 +9,6 @@ pkg install -y libexpat || true
 pkg install -y nodejs termux-api || true
 
 # dependency Python (prompt_toolkit untuk completion)
-python3 -m pip install --quiet --upgrade pip || true
 python3 -m pip install --quiet -r requirements.txt \
   || python3 -m pip install --quiet prompt_toolkit || true
 
