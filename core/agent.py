@@ -150,6 +150,7 @@ class Agent:
         self.line_mode = False
         self._lbuf = ""
         self.last_usage = {}
+        self.summary = ""
         self.printer = None
         self.spin = None
         self._last_user = ""
@@ -262,8 +263,8 @@ class Agent:
         for _ in range(3):
             if len(self.messages) <= self.context_messages and self._tokens() <= threshold:
                 return
-            old = self.messages[:-12]
-            tail = self.messages[-12:]
+            old = self.messages[:-16]
+            tail = self.messages[-16:]
             if not old:
                 return
             try:
@@ -275,9 +276,13 @@ class Agent:
                 ])
                 summary = (r.get("content") or "").strip()
             except Exception:
-                summary = "(previous summary unavailable)"
+                return
+            if not summary:
+                return
+            prev = ("Ringkasan sebelumnya:\n" + self.summary + "\n\n") if self.summary else ""
+            self.summary = (prev + summary)[-12000:]
             self.messages = [{"role": "system",
-                              "content": "Ringkasan percakapan sebelumnya:\n" + summary}] + tail
+                              "content": "Ringkasan percakapan sesi ini (jangan lupakan):\n" + self.summary}] + tail
 
     def _record(self, obj: dict) -> None:
         if self.session_id:
@@ -285,6 +290,7 @@ class Agent:
 
     def reset(self) -> None:
         self.messages = []
+        self.summary = ""
 
     def _emit_think(self, buf: str, maxw: int) -> None:
         if not buf:
