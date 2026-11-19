@@ -5,6 +5,3 @@ config.json
 sessions/
 perseus-workspace/
 *.log
-
-desktop/node_modules/
-desktop/dist/

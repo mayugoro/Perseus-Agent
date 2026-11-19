@@ -26,18 +26,16 @@ cd Perseus-Agent
 
 `install.sh` will:
 
-1. install `python`, `git`, `expat`, `nodejs`, and the Python dependency (`prompt_toolkit`)
+1. install `python`, `git`, `expat`, and the Python dependency (`prompt_toolkit`)
    from `requirements.txt`
 2. run the wizard: **Base URL** + **API key**; the model list is fetched from
    `{base_url}/models` and you pick from it
-3. build the TypeScript/Node web UI in `desktop/`
-4. create the `perseus` and `perseus-web` launchers in `$PREFIX/bin`
+3. create the `perseus` launcher in `$PREFIX/bin`
 
 Then:
 
 ```bash
-perseus          # terminal REPL
-perseus-web      # web UI at http://127.0.0.1:8787
+perseus
 ```
 
 ## Manual setup
@@ -76,19 +74,6 @@ export PERSEUS_API_KEY='...'
 - `/usage` shows estimated tokens, context, duration, reasoning, and steps.
 - `!command` runs a shell command directly; `@file` attaches a workspace file
   to the message.
-
-### Web UI (TypeScript + Node.js)
-
-```bash
-perseus-web          # http://127.0.0.1:8787
-termux-open-url http://127.0.0.1:8787
-```
-
-The web UI lives in `desktop/` (TypeScript server + JavaScript front end,
-Node.js runtime) and talks to the Python agent through `perseus serve` on
-`127.0.0.1:8801`. It provides chat, session list/resume, status bar, stop, and
-new-session controls. `install.sh` installs `nodejs` and builds it
-automatically.
 
 ## REPL commands
 
