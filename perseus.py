@@ -28,7 +28,7 @@ C = {"b": "\033[1m", "c": "\033[36m", "y": "\033[33m", "r": "\033[31m", "d": "\0
 
 SLASH = [
     ("/help", "help"), ("/tools", "list tools"), ("/new", "reset conversation"),
-    ("/mode", "ask | auto | read-only | full"), ("/model", "list / pick model"),
+    ("/mode", "ask | auto | read | full"), ("/model", "list / pick model"),
     ("/reasoning", "default | low | medium | high"), ("/think", "toggle thinking block"),
     ("/yolo", "disable risky-tool confirmation"), ("/learn", "auto-learn to memory"),
     ("/curator", "auto-skill after complex tasks"),
@@ -236,7 +236,7 @@ def build_prompt(get_status=None):
                                              display_meta=desc)
                     return
                 opts = {
-                    "/mode": ["ask", "auto", "read-only", "full"],
+                    "/mode": ["ask", "auto", "read", "full"],
                     "/reasoning": ["default", "low", "medium", "high"],
                     "/agents": ["on", "off", "max", "permission"],
                     "/queue": ["run", "clear", "rm"],
@@ -272,7 +272,7 @@ def setup_readline() -> bool:
                 opts = [c for c, _ in SLASH if c.startswith(text)]
             else:
                 opts = {
-                    "/mode": ["ask", "auto", "read-only", "full"],
+                    "/mode": ["ask", "auto", "read", "full"],
                     "/reasoning": ["default", "low", "medium", "high"],
                     "/agents": ["on", "off", "max", "permission"],
                     "/queue": ["run", "clear", "rm"],
@@ -460,11 +460,11 @@ def wizard(cfg: dict) -> dict:
     if val is not None:
         cfg["reasoning_effort"] = val
 
-    mopts = ["ask", "auto", "read-only", "full"]
+    mopts = ["ask", "auto", "read", "full"]
     print("Permission:")
     print("  1. ask        — konfirmasi tool berisiko")
     print("  2. auto       — jalankan semua tool tanpa konfirmasi")
-    print("  3. read-only  — blokir tool berisiko")
+    print("  3. read       — blokir tool berisiko")
     print("  4. full       — akses penuh, tanpa konfirmasi & tanpa batas workspace")
     mode = input(f"Pick permission number [Enter={cfg.get('permission','ask')}]: ").strip()
     if mode.isdigit() and 1 <= int(mode) <= len(mopts):
@@ -508,7 +508,7 @@ def make_confirm():
 def main() -> int:
     ap = argparse.ArgumentParser(prog="perseus")
     ap.add_argument("-p", "--prompt", help="run one command then exit")
-    ap.add_argument("--mode", choices=["ask", "auto", "read-only"])
+    ap.add_argument("--mode", choices=["ask", "auto", "read", "full"])
     ap.add_argument("--model")
     ap.add_argument("--workspace")
     ap.add_argument("command", nargs="?", choices=["model", "setup", "sessions", "resume"],
@@ -703,7 +703,7 @@ def main() -> int:
             print()
             continue
         if line == "/help":
-            print("/tools  list tools\n/new    reset conversation\n/mode ask|auto|read-only"
+            print("/tools  list tools\n/new    reset conversation\n/mode ask|auto|read|full"
                   "\n/model [id]  change/list model\n/think  show/hide reasoning\n/queue [task|run|rm N|clear]  task queue\n/agents [on|off|max N]  parallel subagents\n/exit   exit")
             continue
         if line == "/tools":
@@ -716,15 +716,29 @@ def main() -> int:
             banner(cfg)
             welcome()
             continue
-        if line.startswith("/mode "):
-            m = line.split(None, 1)[1].strip()
-            if m in ("ask", "auto", "read-only"):
+        if line == "/mode" or line.startswith("/mode "):
+            modes = ["ask", "auto", "read", "full"]
+            m = line[5:].strip() if line.startswith("/mode ") else ""
+            if m in modes:
                 agent.permission = m
                 cfg["permission"] = m
                 cfgmod.save(cfg)
                 print(f"mode={m}")
+            elif not m:
+                print("Permission:")
+                desc = {"ask": "konfirmasi tool berisiko", "auto": "tanpa konfirmasi",
+                        "read": "blokir tool berisiko", "full": "akses penuh"}
+                for i, x in enumerate(modes, 1):
+                    mark = f"{C['c']}❯{C['0']} " if x == agent.permission else "  "
+                    print(f"{mark}{i}. {x}  {C['d']}{desc[x]}{C['0']}")
+                pick = input("Pick permission number [Enter=keep]: ").strip()
+                if pick.isdigit() and 1 <= int(pick) <= len(modes):
+                    agent.permission = modes[int(pick) - 1]
+                    cfg["permission"] = agent.permission
+                    cfgmod.save(cfg)
+                    print(f"mode={agent.permission}")
             else:
-                print("mode: ask | auto | read-only")
+                print("mode: ask | auto | read | full")
             continue
         if line == "/model" or line.startswith("/model "):
             print(f"provider : {cfg['base_url']}")
@@ -910,7 +924,7 @@ def main() -> int:
                 print(f"subagents : {'ON' if sub.get('enabled', True) else 'OFF'}")
                 print(f"max paralel: {sub.get('max_parallel', 3)}")
                 print(f"permission : {sub.get('permission', 'auto')}")
-                print("\n/agents on|off · /agents max N · /agents permission auto|read-only")
+                print("\n/agents on|off · /agents max N · /agents permission auto|read")
             elif rest in ("on", "off"):
                 sub["enabled"] = rest == "on"
                 cfgmod.save(cfg)
@@ -924,14 +938,14 @@ def main() -> int:
                     print("format: /agents max N (1-8)")
             elif rest.startswith("permission "):
                 v = rest.split(None, 1)[1].strip()
-                if v in ("auto", "read-only"):
+                if v in ("auto", "read", "read-only"):
                     sub["permission"] = v
                     cfgmod.save(cfg)
                     print(f"permission={v}")
                 else:
-                    print("pilihan: auto | read-only")
+                    print("pilihan: auto | read")
             else:
-                print("perintah: /agents on|off · /agents max N · /agents permission auto|read-only")
+                print("perintah: /agents on|off · /agents max N · /agents permission auto|read")
             continue
         if line == "/queue" or line.startswith("/queue "):
             rest = line[6:].strip()

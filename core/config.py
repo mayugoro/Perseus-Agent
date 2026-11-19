@@ -13,7 +13,7 @@ DEFAULTS = {
     "base_url": "",
     "model": "",
     "workspace": str(HOME / "perseus-workspace"),
-    "permission": "ask",          # ask | auto | read-only
+    "permission": "ask",          # ask | auto | read | full
     "max_steps": 0,
     "max_tokens": 4096,
     "timeout": 180,

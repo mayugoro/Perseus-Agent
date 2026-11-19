@@ -469,9 +469,9 @@ class Agent:
                               "Don't repeat; use the previous result or answer.")
                     print(f"  {self.prefix}" + (f"\033[33m</{name}> (loop detected, skipped)\033[0m" if self.color else f"</{name}> (loop detected, skipped)"))
                 else:
-                    if self.permission == "read-only" and (
+                    if self.permission in ("read", "read-only") and (
                             self.registry.tools.get(name) and self.registry.tools[name].danger):
-                        result = "DENIED: read-only mode"
+                        result = "DENIED: read mode"
                     elif self.registry.confirm_needed(name, args) and self.permission == "ask":
                         ok = self.confirm(name, args)
                         result = self.registry.call(name, args) if ok else "DENIED by user"

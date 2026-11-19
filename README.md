@@ -87,7 +87,7 @@ TTY required). Tab/arrows to choose, Enter to run.
 /help                      help
 /tools                     list tools
 /new                       reset conversation
-/mode ask|auto|read-only   permission mode
+/mode ask|auto|read|full   permission mode
 /model [id]                show provider + pick model + reasoning
 /queue [task|run|rm N|clear]  task queue
 /yolo                      toggle dangerous-tool confirmation
@@ -206,7 +206,7 @@ Config in `~/.perseus/config.json`:
 ```
 
 Or via REPL: `/agents`, `/agents on|off`, `/agents max N`,
-`/agents permission auto|read-only`. Safe range 1–8; subagents cannot delegate
+`/agents permission auto|read`. Safe range 1–8; subagents cannot delegate
 again (anti-recursion).
 
 ## Tools
