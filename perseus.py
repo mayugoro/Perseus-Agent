@@ -347,17 +347,62 @@ def show_tools(agent: Agent) -> None:
         print(f" {flag} {t.name:<20} {t.description[:70]}")
 
 
-def wizard(cfg: dict) -> dict:
-    print(f"{C['b']}Perseus setup{C['0']} — Base URL + API key, model diambil otomatis.\n")
-    base = input(f"Base URL  [{cfg.get('base_url') or 'https://…/v1'}]: ").strip()
-    if base:
-        cfg["base_url"] = base.rstrip("/")
+def _providers(cfg: dict) -> list[dict]:
+    ps = cfg.get("providers")
+    return ps if isinstance(ps, list) else []
 
-    print("API key disimpan lokal di ~/.perseus/config.json (0600).")
-    print("Kosongkan kalau mau pakai env PERSEUS_API_KEY.")
-    key = getpass.getpass("API key   : ").strip()
-    if key:
-        cfg["api_key"] = key
+
+def _save_provider(cfg: dict, entry: dict) -> None:
+    ps = [p for p in _providers(cfg) if p.get("display_name") != entry.get("display_name")]
+    ps.append(entry)
+    cfg["providers"] = ps
+    cfg["active_provider"] = entry.get("display_name", "")
+
+
+def wizard(cfg: dict) -> dict:
+    print(f"{C['b']}Perseus setup{C['0']} — provider + model\n")
+    providers = _providers(cfg)
+    entry = None
+    if providers:
+        print("Providers:")
+        print("  1. + custom model")
+        for i, p in enumerate(providers, 2):
+            mark = f"{C['c']}❯{C['0']} " if p.get("display_name") == cfg.get("active_provider") else "  "
+            print(f"{mark}{i}. {p.get('display_name') or p.get('base_url')}  {C['d']}{p.get('base_url','')}{C['0']}")
+        print(f"  {len(providers)+2}. cancel")
+        pick = input("Pick a number [Enter=cancel]: ").strip()
+        if not pick or pick == str(len(providers) + 2):
+            print("(cancelled)")
+            return cfg
+        if pick.isdigit() and 2 <= int(pick) <= len(providers) + 1:
+            entry = dict(providers[int(pick) - 2])
+        elif pick != "1":
+            print("(invalid)")
+            return cfg
+
+    if entry is None:
+        host = ""
+        try:
+            from urllib.parse import urlparse
+            host = urlparse(cfg.get("base_url") or "https://…/v1").netloc
+        except Exception:
+            pass
+        disp = input(f"Display name [{host or 'custom'}]: ").strip() or host or "custom"
+        base = input(f"Base URL  [{cfg.get('base_url') or 'https://…/v1'}]: ").strip()
+        if base:
+            cfg["base_url"] = base.rstrip("/")
+        print("API key disimpan lokal di ~/.perseus/config.json (0600).")
+        print("Kosongkan kalau mau pakai env PERSEUS_API_KEY.")
+        key = getpass.getpass("API key   : ").strip()
+        if key:
+            cfg["api_key"] = key
+        entry = {"display_name": disp}
+
+    if entry.get("base_url"):
+        cfg["base_url"] = entry["base_url"]
+    if entry.get("api_key"):
+        cfg["api_key"] = entry["api_key"]
+    cfg["display_name"] = entry.get("display_name", "")
 
     models = []
     if cfg.get("base_url"):
@@ -368,7 +413,7 @@ def wizard(cfg: dict) -> dict:
 
     if models:
         for i, mid in enumerate(models[:40], 1):
-            mark = " *" if mid == cfg.get("model") else "  "
+            mark = f"{C['c']}❯{C['0']} " if mid == cfg.get("model") else "  "
             print(f"{mark}{i}. {mid}")
         if len(models) > 40:
             print(f"   … {len(models)-40} model lain")
@@ -400,8 +445,17 @@ def wizard(cfg: dict) -> dict:
         cfg["permission"] = mopts[int(mode) - 1]
     elif mode in mopts:
         cfg["permission"] = mode
+
+    entry.update({
+        "base_url": cfg.get("base_url", ""),
+        "api_key": cfg.get("api_key", ""),
+        "model": cfg.get("model", ""),
+        "context_length": cfg.get("context_length"),
+        "reasoning_effort": cfg.get("reasoning_effort", ""),
+    })
+    _save_provider(cfg, entry)
     cfgmod.save(cfg)
-    print(f"\nSaved. Model={cfg.get('model')} · mode={cfg.get('permission')}\n")
+    print(f"\nSaved. provider={entry.get('display_name')} · model={cfg.get('model')} · mode={cfg.get('permission')}\n")
     return cfg
 
 
