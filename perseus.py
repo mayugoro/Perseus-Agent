@@ -178,6 +178,17 @@ def est_tokens(agent: Agent) -> int:
     return max(0, chars // 4)
 
 
+def fmt_tok(n: int) -> str:
+    n = int(n)
+    if n >= 1_000_000:
+        v = f"{n / 1_000_000:.1f}".rstrip("0").rstrip(".")
+        return v + "M"
+    if n >= 1_000:
+        v = f"{n / 1_000:.1f}".rstrip("0").rstrip(".")
+        return v + "K"
+    return str(n)
+
+
 def status_line() -> str:
     agent = STATUS.get("agent")
     cfg = STATUS.get("cfg", {})
@@ -193,7 +204,7 @@ def status_line() -> str:
     model = str(agent.llm.model).split("/")[-1]
     last = agent.last_elapsed
     yolo = f" · \033[91mYOLO\033[39m" if cfg.get("yolo") else ""
-    return (f" ☤ {model}{yolo} · ctx {pct_s} [{bar}] {tok}/{limit//1000}k"
+    return (f" ☤ {model}{yolo} · ctx {pct_s} [{bar}] {fmt_tok(tok)}/{fmt_tok(limit)}"
             f" · {last:.0f}s · ⏲ {dur}s    / commands · @ files · ! shell")
 
 
@@ -207,7 +218,7 @@ def cmd_usage(agent: Agent, cfg: dict) -> None:
     if st:
         print(f"session   : {st['id']} ({st['title'] or '-'})")
         print(f"turns     : {st['turns']} · messages: {st['total']}")
-    print(f"context   : ~{tok} tokens / {limit} ({min(100, tok*100//max(1,limit))}%)")
+    print(f"context   : ~{fmt_tok(tok)} / {fmt_tok(limit)} ({min(100, tok*100//max(1,limit))}%)")
     print(f"durasi    : {dur}s · respons terakhir {agent.last_elapsed:.1f}s")
     print(f"reasoning : {cfg.get('reasoning_effort') or 'default'} · steps: "
           f"{'unlimited' if agent.max_steps <= 0 else agent.max_steps}")
@@ -785,7 +796,7 @@ def main() -> int:
             except Exception:
                 pass
             cfgmod.save(cfg)
-            print(f"model={m} · ctx {cfg.get('context_length', '?')}")
+            print(f"model={m} · ctx {fmt_tok(cfg.get('context_length') or 0) if cfg.get('context_length') else '?'}")
             continue
         if line.startswith("/reasoning"):
             v = line.split(None, 1)[1].strip().lower() if " " in line else ""
