@@ -353,7 +353,7 @@ async def _concurrent(agent: Agent, text: str, ps) -> str:
                 inp.cancel()
                 try:
                     await inp
-                except Exception:
+                except BaseException:
                     pass
         return await task
 
