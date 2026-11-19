@@ -1,7 +1,14 @@
 # Perseus Agent
 
+![Platform: Android/Termux](https://img.shields.io/badge/platform-Android%20%2F%20Termux-3DDC84?logo=android&logoColor=white)
+![Language: Python](https://img.shields.io/badge/python-3.10%2B-3776AB?logo=python&logoColor=white)
+![UI helper: TypeScript](https://img.shields.io/badge/helper-TypeScript%20%2F%20Node.js-3178C6?logo=typescript&logoColor=white)
+![License: MIT](https://img.shields.io/badge/license-MIT-green)
+
 ![Perseus on Termux](docs/screenshot.jpg)
 
+
+**Android · Termux · AI Agent · Frida · Reverse Engineering · Automation**
 
 A lightweight AI agent for **Termux (Android)**. All reasoning goes through a
 provider API (OpenAI-compatible) — no local model, GGUF, ONNX, or CPU inference.
