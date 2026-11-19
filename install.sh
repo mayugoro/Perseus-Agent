@@ -4,7 +4,7 @@ cd "$(dirname "$0")"
 
 echo "== Perseus installer =="
 pkg update -y || true
-pkg install -y python git expat nodejs
+pkg install -y python git expat nodejs termux-api
 
 # dependency Python (prompt_toolkit untuk completion)
 python3 -m pip install --quiet --upgrade pip || true

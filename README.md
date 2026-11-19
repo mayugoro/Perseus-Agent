@@ -17,20 +17,21 @@ you on first setup. No provider is hardcoded.
 
 ## Install
 
+One command (fresh Termux):
+
 ```bash
-pkg install -y git
-git clone https://github.com/mayugoro/Perseus-Agent.git
-cd Perseus-Agent
-./install.sh
+pkg install -y git && git clone https://github.com/mayugoro/Perseus-Agent.git && cd Perseus-Agent && ./install.sh
 ```
 
-`install.sh` will:
+`install.sh` handles everything:
 
-1. install `python`, `git`, `expat`, and the Python dependency (`prompt_toolkit`)
-   from `requirements.txt`
-2. run the wizard: **Base URL** + **API key**; the model list is fetched from
-   `{base_url}/models` and you pick from it
-3. create the `perseus` launcher in `$PREFIX/bin`
+1. `pkg update` + install `python`, `git`, `expat`, `nodejs`, `termux-api`
+2. install Python dependencies from `requirements.txt` (`prompt_toolkit`)
+3. build the small `ui/` Node/TypeScript helper (clipboard/notify/highlight)
+4. lock the Termux font size (disable pinch zoom)
+5. run the provider wizard: **display name**, **Base URL**, **API key**;
+   the model list is fetched from `{base_url}/models` and you pick a number
+6. create the `perseus` launcher in `$PREFIX/bin`
 
 Then:
 
