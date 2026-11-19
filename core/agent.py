@@ -79,6 +79,8 @@ class Agent:
         self.abort = threading.Event()
         self.tty = sys.stdout.isatty()
         self.color = True
+        self.line_mode = False
+        self._lbuf = ""
         self._last_user = ""
         self.context_messages = int(cfg.get("context_messages", 36))
         self.max_steps = int(cfg.get("max_steps", 8))
@@ -288,6 +290,14 @@ class Agent:
             def on_text(chunk: str):
                 if self.abort.is_set():
                     raise AbortRun()
+                if self.line_mode:
+                    self._lbuf += chunk
+                    while "\n" in self._lbuf:
+                        line, self._lbuf = self._lbuf.split("\n", 1)
+                        sys.stdout.write("\033[36m" + line + "\033[0m\n")
+                        sys.stdout.flush()
+                    self.last_streamed = True
+                    return
                 if not state["flushed"]:
                     state["flushed"] = True
                     if self.show_reasoning and is_worth(state["rbuf"]):
@@ -332,6 +342,10 @@ class Agent:
                         or state["rbuf"].count("\n") >= 2):
                     self._emit_think(state["rbuf"], state["maxw"])
                 state["rbuf"] = ""
+            if self.line_mode and self._lbuf:
+                sys.stdout.write("\033[36m" + self._lbuf + "\033[0m\n")
+                sys.stdout.flush()
+                self._lbuf = ""
             if self.color and state["blue"]:
                 sys.stdout.write("\033[0m")
                 state["blue"] = False
