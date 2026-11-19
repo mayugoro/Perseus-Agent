@@ -39,6 +39,12 @@ Then:
 perseus
 ```
 
+> **Termux note — expat:** the package is named **`libexpat`**, not `expat`
+> (there is no `expat` package in Termux). `install.sh` installs `libexpat`
+> and treats it as optional, so installation does not abort if it is already
+> present. If `prompt_toolkit` fails with a `pyexpat` / `XML_GetCurrentLineNumber64`
+> load error, run `pkg install -y libexpat && pkg reinstall -y python`.
+
 ## Manual setup
 
 ```bash
