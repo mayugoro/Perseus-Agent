@@ -292,6 +292,8 @@ class Agent:
     def reset(self) -> None:
         self.messages = []
         self.summary = ""
+        self.last_usage = {}
+        self.ctx_zero = True
         self.ctx_zero = True
 
     def _emit_think(self, buf: str, maxw: int) -> None:
