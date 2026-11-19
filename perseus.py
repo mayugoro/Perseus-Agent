@@ -342,7 +342,51 @@ def show_history(msgs: list, limit: int = 6) -> None:
     print()
 
 
+async def _busy_prompt(agent: Agent, text: str, ps) -> str:
+    from prompt_toolkit.patch_stdout import patch_stdout
+    frames = "⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏"
+
+    def message():
+        return f" {frames[int(time.time() * 12) % len(frames)]}\n❯ "
+
+    with patch_stdout():
+        task = asyncio.create_task(asyncio.to_thread(agent.run, text, False))
+        while not task.done():
+            pt = asyncio.create_task(ps.prompt_async(message=message, refresh_interval=0.12))
+            done, _ = await asyncio.wait({task, pt}, return_when=asyncio.FIRST_COMPLETED)
+            if pt in done:
+                try:
+                    pt.result()
+                except BaseException:
+                    pass
+            else:
+                try:
+                    ps.app.exit()
+                except Exception:
+                    pass
+                try:
+                    await pt
+                except BaseException:
+                    pass
+        try:
+            ps.app.exit()
+        except Exception:
+            pass
+        return await task
+
+
 def run_show(agent: Agent, text: str, ps=None) -> str:
+    if ps is not None:
+        try:
+            out = asyncio.run(_busy_prompt(agent, text, ps))
+        except KeyboardInterrupt:
+            agent.abort.set()
+            out = "[stopped]"
+        sys.stdout.write("\r\033[2K\033[1A\r\033[2K\033[1B\r")
+        sys.stdout.flush()
+        if out and not out.startswith("[stopped"):
+            print("\033[36m" + out + "\033[0m")
+        return out
     try:
         out = agent.run(text, stream=True)
     except KeyboardInterrupt:
