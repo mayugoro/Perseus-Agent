@@ -258,8 +258,8 @@ class Agent:
 
     def _spinner(self, stop: threading.Event):
         frames = "⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏"
-        body = " thinking…"
-        w = 1 + len(body)  # lebar tampilan (braille=1 kolom)
+        body = ""
+        w = 1
         sys.stdout.write("\n\033[2m" + frames[0] + body + "\033[0m")
         sys.stdout.flush()
         i = 1
@@ -420,9 +420,6 @@ class Agent:
                               "Don't repeat; use the previous result or answer.")
                     print(f"  {self.prefix}" + (f"\033[33m</{name}> (loop detected, skipped)\033[0m" if self.color else f"</{name}> (loop detected, skipped)"))
                 else:
-                    ts = threading.Event()
-                    if stream and self.tty:
-                        threading.Thread(target=self._spinner, args=(ts,), daemon=True).start()
                     if self.permission == "read-only" and (
                             self.registry.tools.get(name) and self.registry.tools[name].danger):
                         result = "DENIED: read-only mode"
@@ -431,8 +428,6 @@ class Agent:
                         result = self.registry.call(name, args) if ok else "DENIED by user"
                     else:
                         result = self.registry.call(name, args)
-                    ts.set()
-                    time.sleep(0.02)
                 if name == "memory_save" and result.startswith("OK"):
                     saved_mem = True
                 self.messages.append({"role": "tool", "tool_call_id": call.get("id", ""),
