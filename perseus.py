@@ -611,6 +611,8 @@ def main() -> int:
         st = sess.stats(sid)
         agent.session_id = sid
         agent.messages = msgs
+        agent.last_usage = {}
+        agent.ctx_zero = True
         print(f"resumed session {sid} · {st['turns']} turn · {st['total']} messages · "
               f"{sess.fmt_time(st['updated'])}")
         show_history(msgs)
@@ -870,6 +872,8 @@ def main() -> int:
                 st = sess.stats(sid)
                 agent.messages = msgs
                 agent.session_id = sid
+                agent.last_usage = {}
+                agent.ctx_zero = True
                 print(f"resume: {st['title'] or sid} · {sess.fmt_time(st['updated'])} · "
                       f"{st['turns']} turn · {len(msgs)} pesan")
                 show_history(msgs)
