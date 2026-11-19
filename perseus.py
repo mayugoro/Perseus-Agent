@@ -542,12 +542,13 @@ def main() -> int:
     ap.add_argument("--mode", choices=["ask", "auto", "read-only"])
     ap.add_argument("--model")
     ap.add_argument("--workspace")
-    ap.add_argument("command", nargs="?", choices=["model", "setup", "sessions", "resume"],
+    ap.add_argument("command", nargs="?", choices=["model", "setup", "sessions", "resume", "serve"],
                     help="model | setup | sessions | resume")
     ap.add_argument("rest", nargs="*", help="argumen untuk command")
     ap.add_argument("-c", "-resume", "--resume", dest="resume", metavar="SESI",
                     help="resume session (id or id prefix)")
     ap.add_argument("--init", action="store_true", help="buat config default")
+    ap.add_argument("--port", type=int, default=8765, help="port web API (serve)")
     ap.add_argument("--show-config", action="store_true")
     a = ap.parse_args()
 
@@ -620,6 +621,9 @@ def main() -> int:
         return 2
 
     agent = Agent(cfg, confirm=make_confirm())
+    if a.command == "serve":
+        from core.webui import serve as serve_api
+        return serve_api(agent, cfg, a.port)
 
     resumed = False
     if a.resume:
