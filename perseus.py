@@ -689,6 +689,9 @@ def main() -> int:
             except Exception as e:
                 print(f"(gagal baca file: {e})")
                 continue
+        if line == "/stop":
+            print("(no task running)")
+            continue
         if line == "/":
             for cmd, desc in SLASH:
                 print(f"  {cmd:<12} {desc}")
