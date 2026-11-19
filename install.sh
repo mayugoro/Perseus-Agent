@@ -28,7 +28,7 @@ termux-reload-settings 2>/dev/null || true
 
 # cek pyexpat (dipakai prompt_toolkit di sebagian build Termux)
 if ! python3 -c "import pyexpat" >/dev/null 2>&1; then
-  echo "PERINGATAN: pyexpat bermasalah. Jalankan: pkg reinstall python"
+  echo "PERINGATAN: pyexpat bermasalah. Jalankan: pkg install -y libexpat && pkg reinstall -y python"
 fi
 
 python3 perseus.py --init
