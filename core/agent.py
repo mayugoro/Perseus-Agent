@@ -77,6 +77,7 @@ class Agent:
         self.curator_min = int(cfg.get("curator_min_tools", 4))
         self.prefix = prefix
         self.abort = threading.Event()
+        self.tty = sys.stdout.isatty()
         self._last_user = ""
         self.context_messages = int(cfg.get("context_messages", 36))
         self.max_steps = int(cfg.get("max_steps", 8))
@@ -262,7 +263,7 @@ class Agent:
                 return "[stopped by user]"
             step += 1
             stop = threading.Event()
-            if stream and sys.stdout.isatty():
+            if stream and self.tty:
                 threading.Thread(target=self._spinner, args=(stop,), daemon=True).start()
             import shutil
             tw = shutil.get_terminal_size((80, 24)).columns
@@ -368,7 +369,7 @@ class Agent:
                     print(f"  {self.prefix}\033[33m</{name}> (loop detected, skipped)\033[0m")
                 else:
                     ts = threading.Event()
-                    if stream and sys.stdout.isatty():
+                    if stream and self.tty:
                         threading.Thread(target=self._spinner, args=(ts,), daemon=True).start()
                     if self.permission == "read-only" and (
                             self.registry.tools.get(name) and self.registry.tools[name].danger):
