@@ -376,6 +376,11 @@ def wizard(cfg: dict) -> dict:
             return cfg
         if pick.isdigit() and 2 <= int(pick) <= len(providers) + 1:
             entry = dict(providers[int(pick) - 2])
+            if not cfgmod.api_key({**cfg, **entry}):
+                print("API key untuk provider ini belum ada.")
+                key = getpass.getpass("API key   : ").strip()
+                if key:
+                    entry["api_key"] = key
         elif pick != "1":
             print("(invalid)")
             return cfg
