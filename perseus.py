@@ -343,7 +343,8 @@ async def _concurrent(agent: Agent, text: str, ps, stream: bool = False) -> str:
     with patch_stdout():
         task = asyncio.create_task(asyncio.to_thread(agent.run, text, stream))
         while not task.done():
-            inp = asyncio.create_task(ps.prompt_async())
+            inp = asyncio.create_task(ps.prompt_async(
+                bottom_toolbar=toolbar, refresh_interval=0.15))
             done, _ = await asyncio.wait({task, inp}, return_when=asyncio.FIRST_COMPLETED)
             if inp in done:
                 try:
