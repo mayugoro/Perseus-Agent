@@ -24,7 +24,7 @@ from core import skills
 from core.agent import Agent
 from core.llm import LLM
 
-C = {"b": "\033[1m", "c": "\033[36m", "y": "\033[33m", "r": "\033[31m", "0": "\033[0m"}
+C = {"b": "\033[1m", "c": "\033[36m", "y": "\033[33m", "r": "\033[31m", "d": "\033[2m", "0": "\033[0m"}
 
 SLASH = [
     ("/help", "help"), ("/tools", "list tools"), ("/new", "reset conversation"),
