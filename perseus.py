@@ -358,7 +358,7 @@ async def _busy_prompt(agent: Agent, text: str, ps) -> str:
     frames = "⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏"
 
     def message():
-        return f" {frames[int(time.time() * 12) % len(frames)]}\n❯ "
+        return "❯ "
 
     with patch_stdout():
         old_tty, old_color = agent.tty, agent.color
@@ -390,7 +390,7 @@ async def _busy_prompt(agent: Agent, text: str, ps) -> str:
                     ans = ""
                 fut.set_result(ans in ("y", "ya", "yes"))
                 continue
-            pt = asyncio.create_task(ps.prompt_async(message=message, refresh_interval=0.12))
+            pt = asyncio.create_task(ps.prompt_async(message=message))
             done, _ = await asyncio.wait({task, pt}, return_when=asyncio.FIRST_COMPLETED)
             if pt in done:
                 try:
@@ -429,8 +429,6 @@ def run_show(agent: Agent, text: str, ps=None) -> str:
         except KeyboardInterrupt:
             agent.abort.set()
             out = "[stopped]"
-        sys.stdout.write("\033[1A\r\033[2K\033[1B\r")
-        sys.stdout.flush()
         print()
         if out and not agent.last_streamed and not out.startswith("[stopped"):
             print(out)
