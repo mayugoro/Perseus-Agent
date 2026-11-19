@@ -337,14 +337,17 @@ async def _concurrent(agent: Agent, text: str, ps, stream: bool = False) -> str:
     frames = "⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏"
 
     def toolbar():
+        return status_line()
+
+    def message():
         f = frames[int(time.time() * 10) % len(frames)]
-        return f" {f}  {status_line()}"
+        return f" {f}\n❯ "
 
     with patch_stdout():
         task = asyncio.create_task(asyncio.to_thread(agent.run, text, stream))
         while not task.done():
             inp = asyncio.create_task(ps.prompt_async(
-                bottom_toolbar=toolbar, refresh_interval=0.15))
+                message=message, bottom_toolbar=toolbar, refresh_interval=0.15))
             done, _ = await asyncio.wait({task, inp}, return_when=asyncio.FIRST_COMPLETED)
             if inp in done:
                 try:
