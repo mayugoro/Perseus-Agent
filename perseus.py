@@ -368,7 +368,9 @@ async def _concurrent(agent: Agent, text: str, ps, stream: bool = False) -> str:
 def run_show(agent: Agent, text: str, ps=None) -> str:
     if ps is not None:
         old_tty = agent.tty
+        old_color = agent.color
         agent.tty = False
+        agent.color = False
         try:
             out = asyncio.run(_concurrent(agent, text, ps, stream=False))
         except KeyboardInterrupt:
@@ -376,6 +378,7 @@ def run_show(agent: Agent, text: str, ps=None) -> str:
             out = "[stopped by user]"
         finally:
             agent.tty = old_tty
+            agent.color = old_color
         if agent.abort.is_set() or out.startswith("[stopped"):
             print("\033[33m[stopped]\033[0m")
         elif out:
