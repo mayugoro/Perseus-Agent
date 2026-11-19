@@ -2,7 +2,6 @@
 
 ![Perseus on Termux](docs/screenshot.jpg)
 
-
 A lightweight AI agent for **Termux (Android)**. All reasoning goes through a
 provider API (OpenAI-compatible) — no local model, GGUF, ONNX, or CPU inference.
 
