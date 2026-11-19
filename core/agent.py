@@ -50,6 +50,47 @@ Rules:
 """
 
 
+class Spinner:
+    def __init__(self):
+        self.stop = threading.Event()
+        self.th = None
+        self.active = False
+        self.frames = "⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏"
+
+    def _run(self):
+        sys.stdout.write("\n\033[2m" + self.frames[0] + "\033[0m")
+        sys.stdout.flush()
+        i = 1
+        while not self.stop.wait(0.12):
+            sys.stdout.write("\b\033[2m" + self.frames[i % len(self.frames)] + "\033[0m")
+            sys.stdout.flush()
+            i += 1
+        sys.stdout.write("\b \b")
+        sys.stdout.flush()
+
+    def start(self):
+        if self.active:
+            return
+        self.stop = threading.Event()
+        self.active = True
+        self.th = threading.Thread(target=self._run, daemon=True)
+        self.th.start()
+
+    def pause(self):
+        if not self.active:
+            return
+        self.stop.set()
+        if self.th:
+            self.th.join(0.4)
+        self.active = False
+
+    def resume(self):
+        self.start()
+
+    def end(self):
+        self.pause()
+
+
 def sanitize(msgs: list[dict]) -> list[dict]:
     """Pastikan setiap tool_call punya tool response dan tidak ada tool yatim."""
     out: list[dict] = []
@@ -110,6 +151,7 @@ class Agent:
         self._lbuf = ""
         self.last_usage = {}
         self.printer = None
+        self.spin = None
         self._last_user = ""
         self.context_messages = int(cfg.get("context_messages", 36))
         self.max_steps = int(cfg.get("max_steps", 8))
@@ -254,7 +296,11 @@ class Agent:
                 raw = raw[maxw:]
             lines.append(raw)
         body = "[think]\n" + "\n".join("  " + ln for ln in lines) + "\n"
+        if self.spin:
+            self.spin.pause()
         sys.stdout.write(("\033[2m" + body + "\033[0m") if self.color else body)
+        if self.spin:
+            self.spin.resume()
 
     def _spinner(self, stop: threading.Event):
         frames = "⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏"
@@ -272,9 +318,15 @@ class Agent:
 
     def run(self, user_text: str, stream: bool = True) -> str:
         t0 = time.time()
+        if stream and self.tty:
+            self.spin = Spinner()
+            self.spin.start()
         try:
             return self._run(user_text, stream)
         finally:
+            if self.spin:
+                self.spin.end()
+                self.spin = None
             self.last_elapsed = time.time() - t0
 
     def _run(self, user_text: str, stream: bool = True) -> str:
@@ -296,14 +348,13 @@ class Agent:
                 return "[stopped by user]"
             step += 1
             stop = threading.Event()
-            if stream and self.tty:
-                threading.Thread(target=self._spinner, args=(stop,), daemon=True).start()
             import shutil
             tw = shutil.get_terminal_size((80, 24)).columns
             state = {"blue": False, "rbuf": "", "flushed": False, "maxw": max(24, tw // 2)}
 
             def on_first():
-                stop.set()
+                if self.spin:
+                    self.spin.pause()
                 time.sleep(0.06)
 
             def is_worth(buf: str) -> bool:
@@ -378,6 +429,8 @@ class Agent:
             if self.color and state["blue"]:
                 sys.stdout.write("\033[0m")
                 state["blue"] = False
+            if self.spin:
+                self.spin.resume()
 
             if msg.get("usage"):
                 self.last_usage = msg["usage"]
@@ -412,7 +465,11 @@ class Agent:
                 if self.printer:
                     self.printer(name, argstr)
                 else:
+                    if self.spin:
+                        self.spin.pause()
                     print(f"  {self.prefix}" + (f"\033[36m</{name}>\033[0m" if self.color else f"</{name}>") + f" {argstr}")
+                    if self.spin:
+                        self.spin.resume()
                 sig = name + ":" + json.dumps(args, ensure_ascii=False, sort_keys=True)
                 recent_calls.append(sig)
                 if recent_calls.count(sig) >= 3:
