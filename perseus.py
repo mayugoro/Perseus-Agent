@@ -360,6 +360,13 @@ async def _busy_prompt(agent: Agent, text: str, ps) -> str:
     def message():
         return "❯ "
 
+    old_confirm = agent.confirm
+    agent.confirm = busy_confirm
+    from prompt_toolkit import print_formatted_text
+    from prompt_toolkit.formatted_text import FormattedText
+    old_lp, old_tp = agent.line_printer, agent.think_printer
+    agent.line_printer = lambda line: print_formatted_text(FormattedText([("ansicyan", line)]))
+    agent.think_printer = lambda body: print_formatted_text(FormattedText([("ansibrightblack", body)]))
     with patch_stdout():
         old_tty, old_color, old_line = agent.tty, agent.color, agent.line_mode
         agent.tty, agent.color, agent.line_mode = False, False, True
@@ -419,6 +426,7 @@ async def _busy_prompt(agent: Agent, text: str, ps) -> str:
         out = await task
         agent.tty, agent.color, agent.line_mode = old_tty, old_color, old_line
         agent.confirm = old_confirm
+        agent.line_printer, agent.think_printer = old_lp, old_tp
         return out
 
 

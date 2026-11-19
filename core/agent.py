@@ -152,6 +152,8 @@ class Agent:
         self.last_usage = {}
         self.summary = ""
         self.printer = None
+        self.line_printer = None
+        self.think_printer = None
         self.spin = None
         self._last_user = ""
         self.context_messages = int(cfg.get("context_messages", 36))
@@ -304,7 +306,10 @@ class Agent:
                 raw = raw[maxw:]
             lines.append(raw)
         body = "[think]\n" + "\n".join("  " + ln for ln in lines) + "\n"
-        sys.stdout.write(("\033[2m" + body + "\033[0m") if self.color else body)
+        if self.think_printer:
+            self.think_printer(body)
+        else:
+            sys.stdout.write(("\033[2m" + body + "\033[0m") if self.color else body)
 
     def _spinner(self, stop: threading.Event):
         frames = "⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏"
@@ -380,7 +385,9 @@ class Agent:
                     self._lbuf += chunk
                     while "\n" in self._lbuf:
                         line, self._lbuf = self._lbuf.split("\n", 1)
-                        if self.color:
+                        if self.line_printer:
+                            self.line_printer(line)
+                        elif self.color:
                             sys.stdout.write("\033[36m" + line + "\033[0m\n")
                         else:
                             sys.stdout.write(line + "\n")
@@ -432,7 +439,9 @@ class Agent:
                     self._emit_think(state["rbuf"], state["maxw"])
                 state["rbuf"] = ""
             if self.line_mode and self._lbuf:
-                if self.color:
+                if self.line_printer:
+                    self.line_printer(self._lbuf)
+                elif self.color:
                     sys.stdout.write("\033[36m" + self._lbuf + "\033[0m\n")
                 else:
                     sys.stdout.write(self._lbuf + "\n")
