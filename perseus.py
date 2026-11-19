@@ -330,10 +330,17 @@ def show_history(msgs: list, limit: int = 6) -> None:
 
 async def _concurrent(agent: Agent, text: str, ps) -> str:
     from prompt_toolkit.patch_stdout import patch_stdout
+    frames = "⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏"
+
+    def toolbar():
+        f = frames[int(time.time() * 10) % len(frames)]
+        return f" {f} thinking…  {status_line()}"
+
     with patch_stdout():
         task = asyncio.create_task(asyncio.to_thread(agent.run, text))
         while not task.done():
-            inp = asyncio.create_task(ps.prompt_async())
+            inp = asyncio.create_task(ps.prompt_async(
+                bottom_toolbar=toolbar, refresh_interval=0.12))
             done, _ = await asyncio.wait({task, inp}, return_when=asyncio.FIRST_COMPLETED)
             if inp in done:
                 try:
@@ -360,11 +367,15 @@ async def _concurrent(agent: Agent, text: str, ps) -> str:
 
 def run_show(agent: Agent, text: str, ps=None) -> str:
     if ps is not None:
+        old_tty = agent.tty
+        agent.tty = False
         try:
             out = asyncio.run(_concurrent(agent, text, ps))
         except KeyboardInterrupt:
             agent.abort.set()
             out = "[stopped by user]"
+        finally:
+            agent.tty = old_tty
         if agent.abort.is_set() or out.startswith("[stopped"):
             print("\033[33m[stopped]\033[0m")
         if not agent.last_streamed and not out.startswith("[stopped"):
