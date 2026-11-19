@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import concurrent.futures
+import queue as pyqueue
 import getpass
 import json
 import os
@@ -342,6 +344,15 @@ def show_history(msgs: list, limit: int = 6) -> None:
     print()
 
 
+CONFIRM_Q: "pyqueue.Queue" = pyqueue.Queue()
+
+
+def busy_confirm(name: str, args: dict) -> bool:
+    fut = concurrent.futures.Future()
+    CONFIRM_Q.put((name, args, fut))
+    return bool(fut.result())
+
+
 async def _busy_prompt(agent: Agent, text: str, ps) -> str:
     from prompt_toolkit.patch_stdout import patch_stdout
     frames = "⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏"
@@ -353,7 +364,32 @@ async def _busy_prompt(agent: Agent, text: str, ps) -> str:
         old_tty, old_color = agent.tty, agent.color
         agent.tty, agent.color = False, False
         task = asyncio.create_task(asyncio.to_thread(agent.run, text, True))
+        pt = None
         while not task.done():
+            if not CONFIRM_Q.empty():
+                if pt is not None and not pt.done():
+                    try:
+                        ps.app.exit()
+                    except Exception:
+                        pass
+                    try:
+                        await pt
+                    except BaseException:
+                        pass
+                    pt = None
+                name, args, fut = CONFIRM_Q.get()
+                print(f"\n⚠ risky tool: {name}")
+                for k, v in args.items():
+                    sv = str(v)
+                    if k in ("content", "new", "old") and len(sv) > 300:
+                        sv = sv[:300] + f"… ({len(sv)} chars)"
+                    print(f"   {k}: {sv}")
+                try:
+                    ans = input("Continue? [y/N] ").strip().lower()
+                except EOFError:
+                    ans = ""
+                fut.set_result(ans in ("y", "ya", "yes"))
+                continue
             pt = asyncio.create_task(ps.prompt_async(message=message, refresh_interval=0.12))
             done, _ = await asyncio.wait({task, pt}, return_when=asyncio.FIRST_COMPLETED)
             if pt in done:
@@ -382,6 +418,7 @@ async def _busy_prompt(agent: Agent, text: str, ps) -> str:
             pass
         out = await task
         agent.tty, agent.color = old_tty, old_color
+        agent.confirm = old_confirm
         return out
 
 
@@ -392,6 +429,8 @@ def run_show(agent: Agent, text: str, ps=None) -> str:
         except KeyboardInterrupt:
             agent.abort.set()
             out = "[stopped]"
+        sys.stdout.write("\033[1A\r\033[2K\033[1B\r")
+        sys.stdout.flush()
         print()
         if out and not agent.last_streamed and not out.startswith("[stopped"):
             print(out)
