@@ -353,6 +353,7 @@ def run_show(agent: Agent, text: str) -> str:
                 line = line.strip()
                 if not line:
                     continue
+                print(f"\n{C['c']}❯{C['0']} {line}")
                 if line == "/stop":
                     abort.set()
                     agent.abort.set()
@@ -362,7 +363,17 @@ def run_show(agent: Agent, text: str) -> str:
                     print(f"\n[queued] {line[:70]}")
 
     th = None
+    saved_tty = None
     if sys.stdin.isatty():
+        try:
+            import termios
+            fd = sys.stdin.fileno()
+            saved_tty = termios.tcgetattr(fd)
+            attrs = termios.tcgetattr(fd)
+            attrs[3] |= termios.ECHO
+            termios.tcsetattr(fd, termios.TCSADRAIN, attrs)
+        except Exception:
+            saved_tty = None
         th = threading.Thread(target=watch, daemon=True)
         th.start()
     try:
@@ -370,6 +381,12 @@ def run_show(agent: Agent, text: str) -> str:
     finally:
         stopw.set()
         abort.set()
+        if saved_tty is not None:
+            try:
+                import termios
+                termios.tcsetattr(sys.stdin.fileno(), termios.TCSADRAIN, saved_tty)
+            except Exception:
+                pass
     if agent.abort.is_set() or out.startswith("[stopped"):
         print("\033[33m[stopped]\033[0m")
     if not agent.last_streamed and not out.startswith("[stopped"):
