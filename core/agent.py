@@ -342,11 +342,10 @@ class Agent:
                 threading.Thread(target=self._spinner, args=(stop,), daemon=True).start()
             import shutil
             tw = shutil.get_terminal_size((80, 24)).columns
-            state = {"blue": False, "rbuf": "", "flushed": False, "maxw": max(24, tw // 2)}
+            state = {"blue": False, "rbuf": "", "flushed": False, "maxw": max(24, tw // 2), "begun": False}
 
             def on_first():
-                stop.set()
-                time.sleep(0.06)
+                pass
 
             def is_worth(buf: str) -> bool:
                 return (len(buf) >= int(self.cfg.get("min_think_chars", 200))
@@ -355,12 +354,20 @@ class Agent:
             def on_reason(chunk: str):
                 if self.abort.is_set():
                     raise AbortRun()
+                if not state["begun"]:
+                    state["begun"] = True
+                    stop.set()
+                    time.sleep(0.05)
                 if self.show_reasoning:
                     state["rbuf"] += chunk
 
             def on_text(chunk: str):
                 if self.abort.is_set():
                     raise AbortRun()
+                if not state["begun"]:
+                    state["begun"] = True
+                    stop.set()
+                    time.sleep(0.05)
                 if self.line_mode:
                     self._lbuf += chunk
                     while "\n" in self._lbuf:
