@@ -4,7 +4,7 @@ cd "$(dirname "$0")"
 
 echo "== Perseus installer =="
 pkg update -y || true
-pkg install -y python git expat
+pkg install -y python git expat nodejs
 
 # dependency Python (prompt_toolkit untuk completion)
 python3 -m pip install --quiet --upgrade pip || true
@@ -23,6 +23,13 @@ if ! python3 -c "import pyexpat" >/dev/null 2>&1; then
   echo "PERINGATAN: pyexpat bermasalah. Jalankan: pkg reinstall python"
 fi
 
+# Web UI (TypeScript + Node.js)
+if command -v npm >/dev/null 2>&1; then
+  echo "== build Web UI =="
+  ( cd desktop && npm install --silent && npm run build --silent ) \
+    || echo "PERINGATAN: build Web UI gagal (cek: pkg install nodejs)"
+fi
+
 python3 perseus.py --init
 
 PREFIX="${PREFIX:-/data/data/com.termux/files/usr}"
@@ -32,5 +39,17 @@ exec python3 "$(pwd)/perseus.py" "\$@"
 LAUNCH
 chmod +x "$PREFIX/bin/perseus"
 
+cat > "$PREFIX/bin/perseus-web" <<LAUNCH
+#!/data/data/com.termux/files/usr/bin/bash
+cd "$(pwd)/desktop" || exit 1
+if [ ! -f dist/server.js ]; then
+  npm install --silent && npm run build --silent || exit 1
+fi
+exec node dist/server.js "\$@"
+LAUNCH
+chmod +x "$PREFIX/bin/perseus-web"
+
 echo
-echo "Selesai. Jalankan: perseus"
+echo "Selesai."
+echo "  CLI   : perseus"
+echo "  Web UI: perseus-web   →  http://127.0.0.1:8787"
