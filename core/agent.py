@@ -380,7 +380,10 @@ class Agent:
                     self._lbuf += chunk
                     while "\n" in self._lbuf:
                         line, self._lbuf = self._lbuf.split("\n", 1)
-                        sys.stdout.write("\033[36m" + line + "\033[0m\n")
+                        if self.color:
+                            sys.stdout.write("\033[36m" + line + "\033[0m\n")
+                        else:
+                            sys.stdout.write(line + "\n")
                         sys.stdout.flush()
                     self.last_streamed = True
                     return
@@ -429,7 +432,10 @@ class Agent:
                     self._emit_think(state["rbuf"], state["maxw"])
                 state["rbuf"] = ""
             if self.line_mode and self._lbuf:
-                sys.stdout.write("\033[36m" + self._lbuf + "\033[0m\n")
+                if self.color:
+                    sys.stdout.write("\033[36m" + self._lbuf + "\033[0m\n")
+                else:
+                    sys.stdout.write(self._lbuf + "\n")
                 sys.stdout.flush()
                 self._lbuf = ""
             if self.color and state["blue"]:

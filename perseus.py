@@ -361,8 +361,8 @@ async def _busy_prompt(agent: Agent, text: str, ps) -> str:
         return "❯ "
 
     with patch_stdout():
-        old_tty, old_color = agent.tty, agent.color
-        agent.tty, agent.color = False, False
+        old_tty, old_color, old_line = agent.tty, agent.color, agent.line_mode
+        agent.tty, agent.color, agent.line_mode = False, False, True
         task = asyncio.create_task(asyncio.to_thread(agent.run, text, True))
         pt = None
         while not task.done():
@@ -417,7 +417,7 @@ async def _busy_prompt(agent: Agent, text: str, ps) -> str:
         except Exception:
             pass
         out = await task
-        agent.tty, agent.color = old_tty, old_color
+        agent.tty, agent.color, agent.line_mode = old_tty, old_color, old_line
         agent.confirm = old_confirm
         return out
 
