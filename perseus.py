@@ -350,7 +350,9 @@ async def _busy_prompt(agent: Agent, text: str, ps) -> str:
         return f" {frames[int(time.time() * 12) % len(frames)]}\n❯ "
 
     with patch_stdout():
-        task = asyncio.create_task(asyncio.to_thread(agent.run, text, False))
+        old_tty, old_color = agent.tty, agent.color
+        agent.tty, agent.color = False, False
+        task = asyncio.create_task(asyncio.to_thread(agent.run, text, True))
         while not task.done():
             pt = asyncio.create_task(ps.prompt_async(message=message, refresh_interval=0.12))
             done, _ = await asyncio.wait({task, pt}, return_when=asyncio.FIRST_COMPLETED)
@@ -372,7 +374,9 @@ async def _busy_prompt(agent: Agent, text: str, ps) -> str:
             ps.app.exit()
         except Exception:
             pass
-        return await task
+        out = await task
+        agent.tty, agent.color = old_tty, old_color
+        return out
 
 
 def run_show(agent: Agent, text: str, ps=None) -> str:
@@ -382,10 +386,9 @@ def run_show(agent: Agent, text: str, ps=None) -> str:
         except KeyboardInterrupt:
             agent.abort.set()
             out = "[stopped]"
-        sys.stdout.write("\r\033[2K\033[1A\r\033[2K\033[1B\r")
-        sys.stdout.flush()
-        if out and not out.startswith("[stopped"):
-            print("\033[36m" + out + "\033[0m")
+        print()
+        if out and not agent.last_streamed and not out.startswith("[stopped"):
+            print(out)
         return out
     try:
         out = agent.run(text, stream=True)
