@@ -74,6 +74,9 @@ export PERSEUS_API_KEY='...'
 - `/usage` shows estimated tokens, context, duration, reasoning, and steps.
 - `!command` runs a shell command directly; `@file` attaches a workspace file
   to the message.
+- `/copy` copies the last reply to the clipboard. Python handles the agent;
+  the small `ui/` Node/TypeScript helper is used only for capabilities Python
+  lacks on Termux (clipboard, notification, terminal highlight).
 
 ## REPL commands
 

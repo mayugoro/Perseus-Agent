@@ -4,12 +4,18 @@ cd "$(dirname "$0")"
 
 echo "== Perseus installer =="
 pkg update -y || true
-pkg install -y python git expat
+pkg install -y python git expat nodejs
 
 # dependency Python (prompt_toolkit untuk completion)
 python3 -m pip install --quiet --upgrade pip || true
 python3 -m pip install --quiet -r requirements.txt \
   || python3 -m pip install --quiet prompt_toolkit || true
+
+# helper terminal Node/TS (clipboard, notifikasi, highlight)
+if command -v npm >/dev/null 2>&1; then
+  ( cd ui && npm install --silent && npm run build --silent ) \
+    || echo "PERINGATAN: build ui/ gagal (opsional; cek: pkg install nodejs)"
+fi
 
 # kunci ukuran font Termux agar tidak berubah (pinch/zoom)
 mkdir -p "$HOME/.termux"

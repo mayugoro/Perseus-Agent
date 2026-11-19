@@ -8,6 +8,8 @@ import getpass
 import json
 import os
 import select
+import shutil
+import subprocess
 import sys
 import threading
 import time
@@ -32,7 +34,8 @@ SLASH = [
     ("/curator", "auto-skill after complex tasks"),
     ("/memory", "show memory & profile"), ("/forget", "delete memory by id"),
     ("/queue", "task queue"), ("/agents", "parallel subagents"),
-    ("/steps", "tool step limit"), ("/usage", "token & session duration"),
+    ("/steps", "tool step limit"), ("/copy", "copy last reply to clipboard"),
+    ("/usage", "token & session duration"),
     ("/sessions", "list / search sessions"), ("/resume", "resume session"),
     ("/title", "set session title"), ("/session", "active session info"),
     ("/exit", "exit"),
@@ -681,6 +684,25 @@ def main() -> int:
                 print(f"db      : {sess.DB}")
                 print(f"resume  : perseus -c {st['id']}")
             break
+        if line == "/copy":
+            last = ""
+            for m in reversed(agent.messages):
+                if m.get("role") == "assistant" and m.get("content"):
+                    last = m["content"]
+                    break
+            if not last:
+                print("(no reply to copy)")
+                continue
+            helper = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ui", "dist", "cli.js")
+            ok = False
+            if os.path.exists(helper):
+                r = subprocess.run(["node", helper, "copy"], input=last, text=True)
+                ok = r.returncode == 0
+            if not ok and shutil.which("termux-clipboard-set"):
+                r = subprocess.run(["termux-clipboard-set"], input=last, text=True)
+                ok = r.returncode == 0
+            print("(copied)" if ok else "(clipboard helper not available — install nodejs / termux-api)")
+            continue
         if line == "/usage":
             cmd_usage(agent, cfg)
             continue
