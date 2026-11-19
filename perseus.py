@@ -677,7 +677,7 @@ def main() -> int:
                 print(f"\nsession : {st['id']}")
                 print(f"title   : {st['title'] or '-'}")
                 print(f"time    : {sess.fmt_time(st['created'])} → {sess.fmt_time(st['updated'])}")
-                print(f"isi     : {st['turns']} turn · {st['total']} messages · model {st['model'] or '-'}")
+                print(f"content : {st['turns']} turns · {st['total']} messages · model {st['model'] or '-'}")
                 print(f"db      : {sess.DB}")
                 print(f"resume  : perseus -c {st['id']}")
             break
