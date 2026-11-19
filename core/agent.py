@@ -393,8 +393,8 @@ class Agent:
                 if self.last_streamed:
                     print()
                 if not saved_mem:
-                    self._learn(user_text, out)
-                self._curate(user_text, out, tool_count)
+                    threading.Thread(target=self._learn, args=(user_text, out), daemon=True).start()
+                threading.Thread(target=self._curate, args=(user_text, out, tool_count), daemon=True).start()
                 return out
 
             for call in calls:
