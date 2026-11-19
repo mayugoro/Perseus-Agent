@@ -151,7 +151,6 @@ class Agent:
         self._lbuf = ""
         self.last_usage = {}
         self.summary = ""
-        self.ctx_zero = True
         self.printer = None
         self.spin = None
         self._last_user = ""
@@ -294,7 +293,6 @@ class Agent:
         self.summary = ""
         self.last_usage = {}
         self.ctx_zero = True
-        self.ctx_zero = True
 
     def _emit_think(self, buf: str, maxw: int) -> None:
         if not buf:
@@ -327,7 +325,6 @@ class Agent:
         try:
             return self._run(user_text, stream)
         finally:
-            self.ctx_zero = False
             self.last_elapsed = time.time() - t0
 
     def _run(self, user_text: str, stream: bool = True) -> str:
