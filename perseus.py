@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import asyncio
 import getpass
 import json
 import os
@@ -327,7 +328,48 @@ def show_history(msgs: list, limit: int = 6) -> None:
     print()
 
 
-def run_show(agent: Agent, text: str) -> str:
+async def _concurrent(agent: Agent, text: str, ps) -> str:
+    from prompt_toolkit.patch_stdout import patch_stdout
+    with patch_stdout():
+        task = asyncio.create_task(asyncio.to_thread(agent.run, text))
+        while not task.done():
+            inp = asyncio.create_task(ps.prompt_async())
+            done, _ = await asyncio.wait({task, inp}, return_when=asyncio.FIRST_COMPLETED)
+            if inp in done:
+                try:
+                    line = (inp.result() or "").strip()
+                except Exception:
+                    line = ""
+                if line == "/stop":
+                    agent.abort.set()
+                    print("\n[stop requested]")
+                elif line == "/exit":
+                    agent.abort.set()
+                    qmod.add("/exit")
+                elif line:
+                    qmod.add(line)
+                    print(f"\n[queued] {line[:70]}")
+            else:
+                inp.cancel()
+                try:
+                    await inp
+                except Exception:
+                    pass
+        return await task
+
+
+def run_show(agent: Agent, text: str, ps=None) -> str:
+    if ps is not None:
+        try:
+            out = asyncio.run(_concurrent(agent, text, ps))
+        except KeyboardInterrupt:
+            agent.abort.set()
+            out = "[stopped by user]"
+        if agent.abort.is_set() or out.startswith("[stopped"):
+            print("\033[33m[stopped]\033[0m")
+        if not agent.last_streamed and not out.startswith("[stopped"):
+            print(out)
+        return out
     stopw = threading.Event()
     abort = threading.Event()
     agent.abort.clear()
@@ -901,7 +943,7 @@ def main() -> int:
                     for i, q in enumerate(qs, 1):
                         print(f"\n{C['c']}[queue {i}/{len(qs)}]{C['0']} {q['text']}")
                         try:
-                            run_show(agent, q["text"])
+                            run_show(agent, q["text"], ps)
                         except KeyboardInterrupt:
                             print("(cancelled, remaining queue kept)")
                             break
@@ -922,7 +964,7 @@ def main() -> int:
             continue
         try:
             divider()
-            run_show(agent, line)
+            run_show(agent, line, ps)
         except KeyboardInterrupt:
             print("\n(dibatalkan)")
     return 0
