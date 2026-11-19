@@ -370,7 +370,7 @@ def run_show(agent: Agent, text: str) -> str:
             fd = sys.stdin.fileno()
             saved_tty = termios.tcgetattr(fd)
             attrs = termios.tcgetattr(fd)
-            attrs[3] |= termios.ECHO
+            attrs[3] &= ~termios.ECHO
             termios.tcsetattr(fd, termios.TCSADRAIN, attrs)
         except Exception:
             saved_tty = None
