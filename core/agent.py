@@ -347,7 +347,6 @@ class Agent:
                 sys.stdout.write("\033[36m" + self._lbuf + "\033[0m\n")
                 sys.stdout.flush()
                 self._lbuf = ""
-        self.last_usage = {}
             if self.color and state["blue"]:
                 sys.stdout.write("\033[0m")
                 state["blue"] = False
