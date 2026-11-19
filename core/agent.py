@@ -65,7 +65,7 @@ class Spinner:
             sys.stdout.write("\b\033[2m" + self.frames[i % len(self.frames)] + "\033[0m")
             sys.stdout.flush()
             i += 1
-        sys.stdout.write("\b \b")
+        sys.stdout.write("\b \b\n")
         sys.stdout.flush()
 
     def start(self):
