@@ -78,6 +78,7 @@ class Agent:
         self.prefix = prefix
         self.abort = threading.Event()
         self.tty = sys.stdout.isatty()
+        self.color = True
         self._last_user = ""
         self.context_messages = int(cfg.get("context_messages", 36))
         self.max_steps = int(cfg.get("max_steps", 8))
@@ -221,7 +222,8 @@ class Agent:
                 lines.append(raw[:maxw])
                 raw = raw[maxw:]
             lines.append(raw)
-        sys.stdout.write("\033[2m[think]\n" + "\n".join("  " + ln for ln in lines) + "\033[0m\n")
+        body = "[think]\n" + "\n".join("  " + ln for ln in lines) + "\n"
+        sys.stdout.write(("\033[2m" + body + "\033[0m") if self.color else body)
 
     def _spinner(self, stop: threading.Event):
         frames = "⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏"
@@ -291,7 +293,7 @@ class Agent:
                     if self.show_reasoning and is_worth(state["rbuf"]):
                         self._emit_think(state["rbuf"], state["maxw"])
                     state["rbuf"] = ""
-                if not state["blue"]:
+                if self.color and not state["blue"]:
                     sys.stdout.write("\033[36m")
                     state["blue"] = True
                 self.last_streamed = True
@@ -330,7 +332,7 @@ class Agent:
                         or state["rbuf"].count("\n") >= 2):
                     self._emit_think(state["rbuf"], state["maxw"])
                 state["rbuf"] = ""
-            if state["blue"]:
+            if self.color and state["blue"]:
                 sys.stdout.write("\033[0m")
                 state["blue"] = False
 
@@ -366,7 +368,7 @@ class Agent:
                 if recent_calls.count(sig) >= 3:
                     result = ("DENIED: same tool call 3 times. "
                               "Don't repeat; use the previous result or answer.")
-                    print(f"  {self.prefix}\033[33m</{name}> (loop detected, skipped)\033[0m")
+                    print(f"  {self.prefix}" + (f"\033[33m</{name}> (loop detected, skipped)\033[0m" if self.color else f"</{name}> (loop detected, skipped)"))
                 else:
                     ts = threading.Event()
                     if stream and self.tty:
@@ -381,7 +383,7 @@ class Agent:
                         result = self.registry.call(name, args)
                     ts.set()
                     time.sleep(0.02)
-                    print(f"  {self.prefix}\033[36m</{name}>\033[0m {json.dumps(args, ensure_ascii=False)[:160]}")
+                    print(f"  {self.prefix}" + (f"\033[36m</{name}>\033[0m" if self.color else f"</{name}>") + f" {json.dumps(args, ensure_ascii=False)[:160]}")
                 if name == "memory_save" and result.startswith("OK"):
                     saved_mem = True
                 self.messages.append({"role": "tool", "tool_call_id": call.get("id", ""),
