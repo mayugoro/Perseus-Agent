@@ -28,7 +28,7 @@ C = {"b": "\033[1m", "c": "\033[36m", "y": "\033[33m", "r": "\033[31m", "d": "\0
 
 SLASH = [
     ("/help", "help"), ("/tools", "list tools"), ("/new", "reset conversation"),
-    ("/mode", "ask | auto | read-only"), ("/model", "list / pick model"),
+    ("/mode", "ask | auto | read-only | full"), ("/model", "list / pick model"),
     ("/reasoning", "default | low | medium | high"), ("/think", "toggle thinking block"),
     ("/yolo", "disable risky-tool confirmation"), ("/learn", "auto-learn to memory"),
     ("/curator", "auto-skill after complex tasks"),
@@ -236,7 +236,7 @@ def build_prompt(get_status=None):
                                              display_meta=desc)
                     return
                 opts = {
-                    "/mode": ["ask", "auto", "read-only"],
+                    "/mode": ["ask", "auto", "read-only", "full"],
                     "/reasoning": ["default", "low", "medium", "high"],
                     "/agents": ["on", "off", "max", "permission"],
                     "/queue": ["run", "clear", "rm"],
@@ -272,7 +272,7 @@ def setup_readline() -> bool:
                 opts = [c for c, _ in SLASH if c.startswith(text)]
             else:
                 opts = {
-                    "/mode": ["ask", "auto", "read-only"],
+                    "/mode": ["ask", "auto", "read-only", "full"],
                     "/reasoning": ["default", "low", "medium", "high"],
                     "/agents": ["on", "off", "max", "permission"],
                     "/queue": ["run", "clear", "rm"],
@@ -460,10 +460,14 @@ def wizard(cfg: dict) -> dict:
     if val is not None:
         cfg["reasoning_effort"] = val
 
-    mopts = ["ask", "auto", "read-only"]
-    print("Permission: 1. ask  2. auto  3. read-only")
+    mopts = ["ask", "auto", "read-only", "full"]
+    print("Permission:")
+    print("  1. ask        — konfirmasi tool berisiko")
+    print("  2. auto       — jalankan semua tool tanpa konfirmasi")
+    print("  3. read-only  — blokir tool berisiko")
+    print("  4. full       — akses penuh, tanpa konfirmasi & tanpa batas workspace")
     mode = input(f"Pick permission number [Enter={cfg.get('permission','ask')}]: ").strip()
-    if mode.isdigit() and 1 <= int(mode) <= 3:
+    if mode.isdigit() and 1 <= int(mode) <= len(mopts):
         cfg["permission"] = mopts[int(mode) - 1]
     elif mode in mopts:
         cfg["permission"] = mode

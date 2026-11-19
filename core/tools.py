@@ -76,7 +76,7 @@ class Registry:
         if not path.is_absolute():
             path = self.workspace / path
         path = path.resolve()
-        if self.workspace not in path.parents and path != self.workspace:
+        if self.cfg.get("permission") != "full" and self.workspace not in path.parents and path != self.workspace:
             raise PermissionError(f"outside the workspace: {path}")
         return path
 
