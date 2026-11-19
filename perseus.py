@@ -192,7 +192,7 @@ def status_line() -> str:
     dur = int(time.time() - STATUS.get("start", time.time()))
     model = str(agent.llm.model).split("/")[-1]
     last = agent.last_elapsed
-    yolo = " · YOLO" if cfg.get("yolo") else ""
+    yolo = f" · {C['r']}YOLO{C['0']}" if cfg.get("yolo") else ""
     return (f" ☤ {model}{yolo} · ctx {pct_s} [{bar}] {tok}/{limit//1000}k"
             f" · {last:.0f}s · ⏲ {dur}s    / commands · @ files · ! shell")
 
