@@ -296,11 +296,7 @@ class Agent:
                 raw = raw[maxw:]
             lines.append(raw)
         body = "[think]\n" + "\n".join("  " + ln for ln in lines) + "\n"
-        if self.spin:
-            self.spin.pause()
         sys.stdout.write(("\033[2m" + body + "\033[0m") if self.color else body)
-        if self.spin:
-            self.spin.resume()
 
     def _spinner(self, stop: threading.Event):
         frames = "⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏"
@@ -318,15 +314,9 @@ class Agent:
 
     def run(self, user_text: str, stream: bool = True) -> str:
         t0 = time.time()
-        if stream and self.tty:
-            self.spin = Spinner()
-            self.spin.start()
         try:
             return self._run(user_text, stream)
         finally:
-            if self.spin:
-                self.spin.end()
-                self.spin = None
             self.last_elapsed = time.time() - t0
 
     def _run(self, user_text: str, stream: bool = True) -> str:
@@ -348,13 +338,14 @@ class Agent:
                 return "[stopped by user]"
             step += 1
             stop = threading.Event()
+            if stream and self.tty:
+                threading.Thread(target=self._spinner, args=(stop,), daemon=True).start()
             import shutil
             tw = shutil.get_terminal_size((80, 24)).columns
             state = {"blue": False, "rbuf": "", "flushed": False, "maxw": max(24, tw // 2)}
 
             def on_first():
-                if self.spin:
-                    self.spin.pause()
+                stop.set()
                 time.sleep(0.06)
 
             def is_worth(buf: str) -> bool:
@@ -429,8 +420,6 @@ class Agent:
             if self.color and state["blue"]:
                 sys.stdout.write("\033[0m")
                 state["blue"] = False
-            if self.spin:
-                self.spin.resume()
 
             if msg.get("usage"):
                 self.last_usage = msg["usage"]
@@ -465,11 +454,7 @@ class Agent:
                 if self.printer:
                     self.printer(name, argstr)
                 else:
-                    if self.spin:
-                        self.spin.pause()
                     print(f"  {self.prefix}" + (f"\033[36m</{name}>\033[0m" if self.color else f"</{name}>") + f" {argstr}")
-                    if self.spin:
-                        self.spin.resume()
                 sig = name + ":" + json.dumps(args, ensure_ascii=False, sort_keys=True)
                 recent_calls.append(sig)
                 if recent_calls.count(sig) >= 3:
