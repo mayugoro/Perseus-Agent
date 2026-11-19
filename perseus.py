@@ -252,7 +252,6 @@ def build_prompt(get_status=None):
         from prompt_toolkit.formatted_text import ANSI
         return PromptSession(ANSI("\033[97m❯\033[0m "), completer=SlashCompleter(),
                              complete_while_typing=True,
-                             bottom_toolbar=get_status,
                              history=FileHistory(str(hist)))
     except Exception as e:
         globals()["_PT_ERROR"] = f"{type(e).__name__}: {e}"
@@ -549,6 +548,7 @@ def main() -> int:
     while True:
         try:
             if ps:
+                print(f"\033[2m{status_line()}\033[0m")
                 line = ps.prompt().strip()
             else:
                 print(f"\033[2m{status_line()}\033[0m")
@@ -872,6 +872,7 @@ def main() -> int:
                         print(f"\n{C['c']}[queue {i}/{len(qs)}]{C['0']} {q['text']}")
                         try:
                             run_show(agent, q["text"], ps)
+                            divider()
                         except KeyboardInterrupt:
                             print("(cancelled, remaining queue kept)")
                             break
@@ -891,8 +892,8 @@ def main() -> int:
                 print(f"added to queue (#{n})")
             continue
         try:
-            divider()
             run_show(agent, line, ps)
+            divider()
         except KeyboardInterrupt:
             print("\n(dibatalkan)")
     return 0
