@@ -192,7 +192,27 @@ class Registry:
                   "required": ["name", "content"]}, self.t_skill_save, danger=True)
 
     # ---------------------------------------------------------------- impl
+    def _device_kill(self, command: str) -> str | None:
+        import re
+        pats = [
+            r"\breboot\b", r"\bshutdown\b", r"\bpoweroff\b", r"\bhalt\b",
+            r"svc\s+power", r"sys\.powerctl", r"sysrq-trigger",
+            r"recovery\s+--wipe", r"factory\s*reset",
+            r"\bfastboot\b", r"adb\s+reboot",
+            r"\bmkfs\b", r"\bdd\b[^\n]*of=/dev/(block|sd)",
+            r"rm\s+-rf\s+/(\s|$|\*)",
+        ]
+        low = command.lower()
+        for p in pats:
+            if re.search(p, low):
+                return ("BLOCKED: perintah ini bisa mematikan/merusak device. "
+                        "Jalankan sendiri oleh user dari terminal.")
+        return None
+
     def t_shell(self, command: str, timeout: int | None = None) -> str:
+        blocked = self._device_kill(command)
+        if blocked:
+            return blocked
         t = min(int(timeout or self.timeout), 600)
         r = subprocess.run(command, shell=True, cwd=self.workspace,
                            capture_output=True, text=True, timeout=t)
