@@ -25,7 +25,7 @@ pkg install -y git && git clone https://github.com/mayugoro/Perseus-Agent.git &&
 
 `install.sh` handles everything:
 
-1. `pkg update` + install `python`, `git`, `expat`, `nodejs`, `termux-api`
+1. `pkg update` + install `python`, `git`, `libexpat`, `nodejs`, `termux-api`
 2. install Python dependencies from `requirements.txt` (`prompt_toolkit`)
 3. build the small `ui/` Node/TypeScript helper (clipboard/notify/highlight)
 4. lock the Termux font size (disable pinch zoom)
