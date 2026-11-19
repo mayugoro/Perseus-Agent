@@ -50,6 +50,33 @@ Rules:
 """
 
 
+def sanitize(msgs: list[dict]) -> list[dict]:
+    """Pastikan setiap tool_call punya tool response dan tidak ada tool yatim."""
+    out: list[dict] = []
+    i = 0
+    while i < len(msgs):
+        m = msgs[i]
+        role = m.get("role")
+        if role == "assistant" and m.get("tool_calls"):
+            ids = [c.get("id", "") for c in m["tool_calls"]]
+            j = i + 1
+            resp = {}
+            while j < len(msgs) and msgs[j].get("role") == "tool":
+                resp[msgs[j].get("tool_call_id")] = msgs[j]
+                j += 1
+            out.append(m)
+            for tid in ids:
+                out.append(resp.get(tid) or {"role": "tool", "tool_call_id": tid,
+                                             "content": "(no output)"})
+            i = j
+        elif role == "tool":
+            i += 1
+        else:
+            out.append(m)
+            i += 1
+    return out
+
+
 class AbortRun(BaseException):
     pass
 
@@ -315,11 +342,11 @@ class Agent:
             for attempt in range(1, self.llm.retries + 1):
                 try:
                     if stream:
-                        msg = self.llm.stream_chat([self._system()] + self.messages[-40:], tools,
+                        msg = self.llm.stream_chat([self._system()] + sanitize(self.messages[-40:]), tools,
                                                    on_text=on_text, on_reasoning=on_reason,
                                                    on_first=on_first)
                     else:
-                        msg = self.llm.chat([self._system()] + self.messages[-40:], tools)
+                        msg = self.llm.chat([self._system()] + sanitize(self.messages[-40:]), tools)
                     break
                 except AbortRun:
                     stop.set()
