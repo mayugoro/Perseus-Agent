@@ -328,7 +328,7 @@ def show_history(msgs: list, limit: int = 6) -> None:
     print()
 
 
-async def _concurrent(agent: Agent, text: str, ps) -> str:
+async def _concurrent(agent: Agent, text: str, ps, stream: bool = False) -> str:
     from prompt_toolkit.patch_stdout import patch_stdout
     frames = "⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏"
 
@@ -337,7 +337,7 @@ async def _concurrent(agent: Agent, text: str, ps) -> str:
         return f" {f} thinking…  {status_line()}"
 
     with patch_stdout():
-        task = asyncio.create_task(asyncio.to_thread(agent.run, text))
+        task = asyncio.create_task(asyncio.to_thread(agent.run, text, stream))
         while not task.done():
             inp = asyncio.create_task(ps.prompt_async(
                 bottom_toolbar=toolbar, refresh_interval=0.12))
@@ -368,21 +368,18 @@ async def _concurrent(agent: Agent, text: str, ps) -> str:
 def run_show(agent: Agent, text: str, ps=None) -> str:
     if ps is not None:
         old_tty = agent.tty
-        old_color = agent.color
         agent.tty = False
-        agent.color = False
         try:
-            out = asyncio.run(_concurrent(agent, text, ps))
+            out = asyncio.run(_concurrent(agent, text, ps, stream=False))
         except KeyboardInterrupt:
             agent.abort.set()
             out = "[stopped by user]"
         finally:
             agent.tty = old_tty
-            agent.color = old_color
         if agent.abort.is_set() or out.startswith("[stopped"):
             print("\033[33m[stopped]\033[0m")
-        if not agent.last_streamed and not out.startswith("[stopped"):
-            print(out)
+        elif out:
+            print("\033[36m" + out + "\033[0m")
         return out
     stopw = threading.Event()
     abort = threading.Event()
