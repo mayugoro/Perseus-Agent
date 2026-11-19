@@ -358,9 +358,15 @@ async def _busy_prompt(agent: Agent, text: str, ps) -> str:
             done, _ = await asyncio.wait({task, pt}, return_when=asyncio.FIRST_COMPLETED)
             if pt in done:
                 try:
-                    pt.result()
+                    line = (pt.result() or "").strip()
                 except BaseException:
-                    pass
+                    line = ""
+                if line == "/stop":
+                    agent.abort.set()
+                    print("\n[stop requested]")
+                elif line:
+                    qmod.add(line)
+                    print(f"\n[queued] {line[:70]}")
             else:
                 try:
                     ps.app.exit()
