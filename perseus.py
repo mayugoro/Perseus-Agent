@@ -364,6 +364,10 @@ async def _concurrent(agent: Agent, text: str, ps, stream: bool = False) -> str:
                     qmod.add(line)
                     print(f"\n[queued] {line[:70]}")
             else:
+                try:
+                    ps.app.exit()
+                except Exception:
+                    pass
                 inp.cancel()
                 try:
                     await inp
