@@ -182,14 +182,15 @@ def status_line() -> str:
         return ""
     limit = int(cfg.get("context_length") or getattr(agent, "context_length", 128000) or 128000)
     tok = est_tokens(agent)
-    pct = min(100, int(tok * 100 / max(1, limit)))
-    fill = min(10, pct // 10)
+    ratio = min(100.0, tok * 100.0 / max(1, limit))
+    pct_s = f"{ratio:.1f}%" if ratio < 1 else f"{int(ratio)}%"
+    fill = max(1 if tok else 0, min(10, int(ratio // 10)))
     bar = "█" * fill + "░" * (10 - fill)
     dur = int(time.time() - STATUS.get("start", time.time()))
     model = str(agent.llm.model).split("/")[-1]
     last = agent.last_elapsed
     yolo = " · YOLO" if cfg.get("yolo") else ""
-    return (f" ☤ {model}{yolo} · ctx {pct}% [{bar}] {tok}/{limit//1000}k"
+    return (f" ☤ {model}{yolo} · ctx {pct_s} [{bar}] {tok}/{limit//1000}k"
             f" · {last:.0f}s · ⏲ {dur}s    / commands · @ files · ! shell")
 
 
@@ -339,7 +340,7 @@ async def _concurrent(agent: Agent, text: str, ps, stream: bool = False) -> str:
     with patch_stdout():
         task = asyncio.create_task(asyncio.to_thread(agent.run, text, stream))
         while not task.done():
-            inp = asyncio.create_task(ps.prompt_async(bottom_toolbar=toolbar))
+            inp = asyncio.create_task(ps.prompt_async())
             done, _ = await asyncio.wait({task, inp}, return_when=asyncio.FIRST_COMPLETED)
             if inp in done:
                 try:
