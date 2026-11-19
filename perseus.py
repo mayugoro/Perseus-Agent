@@ -373,7 +373,7 @@ def run_show(agent: Agent, text: str, ps=None) -> str:
         old_tty = agent.tty
         old_color = agent.color
         agent.tty = False
-        agent.color = False
+        agent.color = True
         agent.line_mode = False
         try:
             out = asyncio.run(_concurrent(agent, text, ps, stream=False))
