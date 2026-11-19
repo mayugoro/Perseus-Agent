@@ -109,6 +109,7 @@ class Agent:
         self.line_mode = False
         self._lbuf = ""
         self.last_usage = {}
+        self.printer = None
         self._last_user = ""
         self.context_messages = int(cfg.get("context_messages", 36))
         self.max_steps = int(cfg.get("max_steps", 8))
@@ -407,6 +408,11 @@ class Agent:
                     args = {}
 
                 tool_count += 1
+                argstr = json.dumps(args, ensure_ascii=False)[:160]
+                if self.printer:
+                    self.printer(name, argstr)
+                else:
+                    print(f"  {self.prefix}" + (f"\033[36m</{name}>\033[0m" if self.color else f"</{name}>") + f" {argstr}")
                 sig = name + ":" + json.dumps(args, ensure_ascii=False, sort_keys=True)
                 recent_calls.append(sig)
                 if recent_calls.count(sig) >= 3:
@@ -427,7 +433,6 @@ class Agent:
                         result = self.registry.call(name, args)
                     ts.set()
                     time.sleep(0.02)
-                    print(f"  {self.prefix}" + (f"\033[36m</{name}>\033[0m" if self.color else f"</{name}>") + f" {json.dumps(args, ensure_ascii=False)[:160]}")
                 if name == "memory_save" and result.startswith("OK"):
                     saved_mem = True
                 self.messages.append({"role": "tool", "tool_call_id": call.get("id", ""),

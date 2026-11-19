@@ -372,8 +372,16 @@ def run_show(agent: Agent, text: str, ps=None) -> str:
     if ps is not None:
         old_tty = agent.tty
         old_color = agent.color
+        old_printer = agent.printer
         agent.tty = False
         agent.color = True
+        try:
+            from prompt_toolkit import print_formatted_text
+            from prompt_toolkit.formatted_text import FormattedText
+            agent.printer = lambda name, args: print_formatted_text(
+                FormattedText([("ansicyan", f"  </{name}>"), ("", f" {args}")]))
+        except Exception:
+            agent.printer = None
         agent.line_mode = False
         try:
             out = asyncio.run(_concurrent(agent, text, ps, stream=False))
@@ -383,6 +391,7 @@ def run_show(agent: Agent, text: str, ps=None) -> str:
         finally:
             agent.tty = old_tty
             agent.color = old_color
+            agent.printer = old_printer
             agent.line_mode = False
         if agent.abort.is_set() or out.startswith("[stopped"):
             print("\033[33m[stopped]\033[0m")
